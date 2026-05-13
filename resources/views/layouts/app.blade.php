@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config('app.name') }} - @yield('title', 'HelpDesk')</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
+</head>
+<body class="h-full">
+
+<div class="min-h-full">
+    {{-- Navbar --}}
+    <nav class="bg-brand-700 shadow-sm">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <a href="{{ route('dashboard') }}" class="text-white font-bold text-xl tracking-tight">
+                        🖥 HelpDesk
+                    </a>
+                    @auth
+                    <div class="hidden md:flex gap-1 ml-6">
+                        @if(auth()->user()->isTechnician())
+                            <a href="{{ route('dashboard') }}"
+                               class="px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
+                                Dashboard
+                            </a>
+                            <a href="{{ route('tickets.index') }}"
+                               class="px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
+                                Todos os Chamados
+                            </a>
+                            <a href="{{ route('reports.index') }}"
+                               class="px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
+                                Relatórios
+                            </a>
+                        @else
+                            <a href="{{ route('dashboard') }}"
+                               class="px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
+                                Meus Chamados
+                            </a>
+                            <a href="{{ route('tickets.create') }}"
+                               class="px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
+                                Abrir Chamado
+                            </a>
+                        @endif
+                    </div>
+                    @endauth
+                </div>
+
+                @auth
+                <div class="flex items-center gap-3" x-data="{ open: false }">
+                    <span class="text-brand-200 text-sm hidden sm:block">
+                        {{ auth()->user()->name }}
+                        <span class="ml-1 text-xs bg-brand-500 text-white px-1.5 py-0.5 rounded-full">
+                            {{ auth()->user()->isTechnician() ? 'Técnico' : 'Colaborador' }}
+                        </span>
+                    </span>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit"
+                                class="text-brand-200 hover:text-white text-sm px-3 py-2 rounded-md hover:bg-brand-600 transition-colors">
+                            Sair
+                        </button>
+                    </form>
+                </div>
+                @endauth
+            </div>
+        </div>
+    </nav>
+
+    {{-- Flash messages --}}
+    @if(session('success'))
+    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
+         class="fixed top-4 right-4 z-50 bg-green-500 text-white px-5 py-3 rounded-lg shadow-lg text-sm">
+        {{ session('success') }}
+    </div>
+    @endif
+    @if(session('error'))
+    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
+         class="fixed top-4 right-4 z-50 bg-red-500 text-white px-5 py-3 rounded-lg shadow-lg text-sm">
+        {{ session('error') }}
+    </div>
+    @endif
+
+    {{-- Page header --}}
+    @hasSection('header')
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+            @yield('header')
+        </div>
+    </header>
+    @endif
+
+    {{-- Main content --}}
+    <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+        {{ $slot ?? '' }}
+        @yield('content')
+    </main>
+</div>
+
+@livewireScripts
+</body>
+</html>
