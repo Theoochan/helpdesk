@@ -21,9 +21,11 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
+
+    // ─── Role helpers ────────────────────────────────────────────────────────
 
     public function isCollaborator(): bool
     {
@@ -32,8 +34,15 @@ class User extends Authenticatable
 
     public function isTechnician(): bool
     {
-        return $this->role === 'technician';
+        return in_array($this->role, ['technician', 'admin']);
     }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    // ─── Relacionamentos — Tickets ───────────────────────────────────────────
 
     public function tickets(): HasMany
     {
@@ -45,8 +54,25 @@ class User extends Authenticatable
         return $this->hasMany(Ticket::class, 'technician_id');
     }
 
-    public function comments(): HasMany
+    public function ticketComments(): HasMany
     {
         return $this->hasMany(TicketComment::class);
+    }
+
+    // ─── Relacionamentos — OS Internas ───────────────────────────────────────
+
+    public function requestedOrders(): HasMany
+    {
+        return $this->hasMany(ServiceOrder::class, 'requester_id');
+    }
+
+    public function assignedOrders(): HasMany
+    {
+        return $this->hasMany(ServiceOrder::class, 'assigned_to_id');
+    }
+
+    public function serviceOrderComments(): HasMany
+    {
+        return $this->hasMany(ServiceOrderComment::class);
     }
 }

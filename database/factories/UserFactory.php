@@ -36,9 +36,12 @@ class UserFactory extends Factory
 
     public function technician(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'role' => 'technician',
-        ]);
+        return $this->state(fn () => ['role' => 'technician']);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn () => ['role' => 'admin']);
     }
 
     public function unverified(): static

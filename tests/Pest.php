@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Category;
+use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -10,7 +11,7 @@ pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
 
-// --- Helpers globais reutilizáveis nos testes ---
+// ─── Helpers de usuários ─────────────────────────────────────────────────────
 
 function colaborador(array $attrs = []): User
 {
@@ -21,6 +22,13 @@ function tecnico(array $attrs = []): User
 {
     return User::factory()->create(array_merge(['role' => 'technician'], $attrs));
 }
+
+function admin(array $attrs = []): User
+{
+    return User::factory()->create(array_merge(['role' => 'admin'], $attrs));
+}
+
+// ─── Helpers de entidades ────────────────────────────────────────────────────
 
 function categoria(): Category
 {
@@ -33,5 +41,16 @@ function ticket(array $attrs = []): Ticket
         'user_id'     => colaborador()->id,
         'category_id' => categoria()->id,
         'status'      => 'open',
+    ], $attrs));
+}
+
+function ordem(array $attrs = []): ServiceOrder
+{
+    $req    = tecnico();
+    $assign = tecnico();
+    return ServiceOrder::factory()->create(array_merge([
+        'requester_id'   => $req->id,
+        'assigned_to_id' => $assign->id,
+        'status'         => 'pending',
     ], $attrs));
 }
