@@ -30,9 +30,9 @@ function admin(array $attrs = []): User
 
 // ─── Helpers de entidades ────────────────────────────────────────────────────
 
-function categoria(): Category
+function categoria(array $attrs = []): Category
 {
-    return Category::factory()->create();
+    return Category::factory()->create($attrs);
 }
 
 function ticket(array $attrs = []): Ticket

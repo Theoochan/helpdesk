@@ -1,6 +1,7 @@
 <?php
 
-use App\Livewire\Admin\TechnicianManager;
+use App\Livewire\Admin\AdminManager;
+use App\Models\Category;
 use App\Models\User;
 use Livewire\Livewire;
 
@@ -8,25 +9,25 @@ use Livewire\Livewire;
 
 it('colaborador não acessa área admin', function () {
     $this->actingAs(colaborador())
-        ->get(route('admin.technicians'))
+        ->get(route('admin.index'))
         ->assertForbidden();
 });
 
 it('técnico comum não acessa área admin', function () {
     $this->actingAs(tecnico())
-        ->get(route('admin.technicians'))
+        ->get(route('admin.index'))
         ->assertForbidden();
 });
 
-it('admin acessa área de gestão de técnicos', function () {
+it('admin acessa área de gestão', function () {
     $this->actingAs(admin())
-        ->get(route('admin.technicians'))
+        ->get(route('admin.index'))
         ->assertOk();
 });
 
 it('colaborador não acessa o componente diretamente', function () {
     Livewire::actingAs(colaborador())
-        ->test(TechnicianManager::class)
+        ->test(AdminManager::class)
         ->assertForbidden();
 });
 
@@ -34,13 +35,14 @@ it('colaborador não acessa o componente diretamente', function () {
 
 it('admin cadastra novo técnico', function () {
     Livewire::actingAs(admin())
-        ->test(TechnicianManager::class)
+        ->test(AdminManager::class)
+        ->set('tab', 'technicians')
         ->set('showForm', true)
         ->set('name', 'Novo Técnico')
         ->set('email', 'novo@helpdesk.com')
         ->set('password', 'senha1234')
         ->set('role', 'technician')
-        ->call('save')
+        ->call('saveUser')
         ->assertHasNoErrors();
 
     $this->assertDatabaseHas('users', [
@@ -51,13 +53,14 @@ it('admin cadastra novo técnico', function () {
 
 it('admin cadastra novo admin', function () {
     Livewire::actingAs(admin())
-        ->test(TechnicianManager::class)
+        ->test(AdminManager::class)
+        ->set('tab', 'technicians')
         ->set('showForm', true)
         ->set('name', 'Novo Admin')
         ->set('email', 'novoadmin@helpdesk.com')
         ->set('password', 'senha1234')
         ->set('role', 'admin')
-        ->call('save')
+        ->call('saveUser')
         ->assertHasNoErrors();
 
     $this->assertDatabaseHas('users', [
@@ -70,25 +73,27 @@ it('não cadastra com e-mail já existente', function () {
     tecnico(['email' => 'existente@test.com']);
 
     Livewire::actingAs(admin())
-        ->test(TechnicianManager::class)
+        ->test(AdminManager::class)
+        ->set('tab', 'technicians')
         ->set('showForm', true)
         ->set('name', 'Outro')
         ->set('email', 'existente@test.com')
         ->set('password', 'senha1234')
         ->set('role', 'technician')
-        ->call('save')
+        ->call('saveUser')
         ->assertHasErrors(['email']);
 });
 
-it('não aceita role inválida no cadastro', function () {
+it('não aceita role inválida na aba técnicos', function () {
     Livewire::actingAs(admin())
-        ->test(TechnicianManager::class)
+        ->test(AdminManager::class)
+        ->set('tab', 'technicians')
         ->set('showForm', true)
         ->set('name', 'Teste')
         ->set('email', 'teste@test.com')
         ->set('password', 'senha1234')
-        ->set('role', 'collaborator') // colaborador não é permitido aqui
-        ->call('save')
+        ->set('role', 'collaborator') // colaborador não permitido na aba técnicos
+        ->call('saveUser')
         ->assertHasErrors(['role']);
 });
 
@@ -96,9 +101,9 @@ it('admin remove técnico', function () {
     $tec = tecnico(['email' => 'pararemover@test.com']);
 
     Livewire::actingAs(admin())
-        ->test(TechnicianManager::class)
-        ->call('confirmDelete', $tec->id)
-        ->call('deleteTechnician');
+        ->test(AdminManager::class)
+        ->call('confirmDelete', $tec->id, 'user')
+        ->call('deleteConfirmed');
 
     $this->assertDatabaseMissing('users', ['id' => $tec->id]);
 });
@@ -107,10 +112,10 @@ it('admin não consegue se auto-excluir', function () {
     $adm = admin();
 
     Livewire::actingAs($adm)
-        ->test(TechnicianManager::class)
-        ->call('confirmDelete', $adm->id);
+        ->test(AdminManager::class)
+        ->call('confirmDelete', $adm->id, 'user')
+        ->assertForbidden();
 
-    // confirmDelete deve abortar com 403
     $this->assertDatabaseHas('users', ['id' => $adm->id]);
 });
 
@@ -119,10 +124,105 @@ it('busca filtra técnicos pelo nome', function () {
     tecnico(['name' => 'João Silva']);
 
     Livewire::actingAs(admin())
-        ->test(TechnicianManager::class)
+        ->test(AdminManager::class)
+        ->set('tab', 'technicians')
         ->set('search', 'Carlos')
         ->assertSee('Carlos Ferreira')
         ->assertDontSee('João Silva');
+});
+
+// ─── CRUD de colaboradores ───────────────────────────────────────────────────
+
+it('admin cadastra novo colaborador', function () {
+    Livewire::actingAs(admin())
+        ->test(AdminManager::class)
+        ->set('tab', 'collaborators')
+        ->set('showForm', true)
+        ->set('name', 'Maria Silva')
+        ->set('email', 'maria@empresa.com')
+        ->set('password', 'senha1234')
+        ->set('role', 'collaborator')
+        ->call('saveUser')
+        ->assertHasNoErrors();
+
+    $this->assertDatabaseHas('users', [
+        'email' => 'maria@empresa.com',
+        'role'  => 'collaborator',
+    ]);
+});
+
+it('admin promove colaborador a técnico', function () {
+    $collab = colaborador();
+
+    Livewire::actingAs(admin())
+        ->test(AdminManager::class)
+        ->call('startEditRole', $collab->id)
+        ->set('editRoleValue', 'technician')
+        ->call('saveRole')
+        ->assertHasNoErrors();
+
+    expect($collab->fresh()->role)->toBe('technician');
+});
+
+it('admin remove colaborador', function () {
+    $collab = colaborador(['email' => 'removecollab@test.com']);
+
+    Livewire::actingAs(admin())
+        ->test(AdminManager::class)
+        ->call('confirmDelete', $collab->id, 'user')
+        ->call('deleteConfirmed');
+
+    $this->assertDatabaseMissing('users', ['id' => $collab->id]);
+});
+
+// ─── CRUD de categorias ──────────────────────────────────────────────────────
+
+it('admin cria categoria', function () {
+    Livewire::actingAs(admin())
+        ->test(AdminManager::class)
+        ->set('tab', 'categories')
+        ->set('categoryName', 'Infraestrutura')
+        ->set('categoryColor', '#3b82f6')
+        ->call('saveCategory')
+        ->assertHasNoErrors();
+
+    $this->assertDatabaseHas('categories', ['name' => 'Infraestrutura']);
+});
+
+it('não cria categoria com nome duplicado', function () {
+    Category::create(['name' => 'Rede', 'color' => '#999']);
+
+    Livewire::actingAs(admin())
+        ->test(AdminManager::class)
+        ->set('tab', 'categories')
+        ->set('categoryName', 'Rede')
+        ->set('categoryColor', '#3b82f6')
+        ->call('saveCategory')
+        ->assertHasErrors(['categoryName']);
+});
+
+it('admin edita categoria', function () {
+    $cat = Category::create(['name' => 'Velha', 'color' => '#aaa']);
+
+    Livewire::actingAs(admin())
+        ->test(AdminManager::class)
+        ->call('startEditCategory', $cat->id)
+        ->set('editCategoryName', 'Nova')
+        ->call('saveEditCategory')
+        ->assertHasNoErrors();
+
+    expect($cat->fresh()->name)->toBe('Nova');
+});
+
+it('admin remove categoria', function () {
+    $cat = Category::create(['name' => 'Temporária', 'color' => '#aaa']);
+
+    Livewire::actingAs(admin())
+        ->test(AdminManager::class)
+        ->call('confirmDelete', $cat->id, 'category')
+        ->call('deleteConfirmed');
+
+    $this->assertDatabaseMissing('categories', ['id' => $cat->id]);
 });
 
 // ─── Menu de navegação ───────────────────────────────────────────────────────

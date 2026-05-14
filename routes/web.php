@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\Admin\TechnicianManager;
+use App\Livewire\Admin\AdminManager;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Reports\TicketReports;
@@ -54,6 +54,6 @@ Route::middleware('auth')->group(function () {
 
     // ── Área exclusiva de admins ─────────────────────────────────────────────
     Route::middleware('can:manage-technicians')->group(function () {
-        Route::get('/admin/tecnicos', TechnicianManager::class)->name('admin.technicians');
+        Route::get('/admin', AdminManager::class)->name('admin.index');
     });
 });

@@ -42,31 +42,29 @@ it('limpar filtro no dashboard exibe todos os chamados', function () {
         ->assertSee('Em Atendimento');
 });
 
-// ─── Relatórios ──────────────────────────────────────────────────────────────
+// ─── Relatórios — ranking ─────────────────────────────────────────────────────
 
-it('relatório agrupa chamados por técnico corretamente', function () {
+it('relatório exibe ranking do técnico na tabela', function () {
     $tec = tecnico(['name' => 'Técnico Relatório']);
     ticket(['technician_id' => $tec->id, 'status' => 'resolved']);
     ticket(['technician_id' => $tec->id, 'status' => 'closed']);
 
     Livewire::actingAs(tecnico())
         ->test(TicketReports::class)
-        ->set('groupBy', 'technician')
         ->assertSee('Técnico Relatório');
 });
 
-it('relatório agrupa chamados por colaborador corretamente', function () {
+it('relatório exibe ranking do colaborador na tabela', function () {
     $col = colaborador(['name' => 'Colaborador Relatório']);
     ticket(['user_id' => $col->id]);
     ticket(['user_id' => $col->id]);
 
     Livewire::actingAs(tecnico())
         ->test(TicketReports::class)
-        ->set('groupBy', 'collaborator')
         ->assertSee('Colaborador Relatório');
 });
 
-it('relatório filtra por período', function () {
+it('relatório filtra por período — exibe colaborador que abriu chamado recente', function () {
     $col = colaborador();
 
     // Chamado antigo — fora do período
@@ -85,16 +83,14 @@ it('relatório filtra por período', function () {
 
     Livewire::actingAs(tecnico())
         ->test(TicketReports::class)
-        ->set('groupBy', 'collaborator')
         ->set('from', now()->subDays(10)->toDateString())
         ->set('to', now()->toDateString())
         ->assertSee($col->name);
 });
 
-it('relatório mostra mensagem quando não há dados', function () {
+it('relatório mostra mensagem quando não há dados no ranking de técnicos', function () {
     Livewire::actingAs(tecnico())
         ->test(TicketReports::class)
-        ->set('groupBy', 'technician')
         ->assertSee('Nenhum dado para o período selecionado');
 });
 
@@ -104,4 +100,70 @@ it('relatório não quebra com data "de" maior que "até"', function () {
         ->set('from', now()->toDateString())
         ->set('to', now()->subDays(10)->toDateString())
         ->assertOk();
+});
+
+// ─── Relatórios — cards de resumo ────────────────────────────────────────────
+
+it('cards de resumo exibem contagens por status', function () {
+    ticket(['status' => 'open']);
+    ticket(['status' => 'open']);
+    ticket(['status' => 'resolved']);
+    ticket(['status' => 'cancelled']);
+
+    Livewire::actingAs(tecnico())
+        ->test(TicketReports::class)
+        ->assertSee('Abertos')
+        ->assertSee('Resolvidos')
+        ->assertSee('Cancelados');
+});
+
+// ─── Relatórios — dados dos gráficos (service level) ─────────────────────────
+
+it('reportByStatus retorna contagem por status', function () {
+    $col = colaborador();
+    ticket(['user_id' => $col->id, 'status' => 'open']);
+    ticket(['user_id' => $col->id, 'status' => 'open']);
+    ticket(['user_id' => $col->id, 'status' => 'resolved']);
+
+    $service = app(\App\Services\TicketService::class);
+    $result  = $service->reportByStatus(null, null);
+
+    expect($result['open'])->toBe(2)
+        ->and($result['resolved'])->toBe(1);
+});
+
+it('reportByCategory retorna agrupamento correto', function () {
+    $cat = categoria(['name' => 'Infraestrutura']);
+    $col = colaborador();
+    ticket(['user_id' => $col->id, 'category_id' => $cat->id]);
+    ticket(['user_id' => $col->id, 'category_id' => $cat->id]);
+    ticket(['user_id' => $col->id, 'category_id' => null]);
+
+    $service = app(\App\Services\TicketService::class);
+    $result  = $service->reportByCategory(null, null);
+
+    expect($result)->toHaveKey('Infraestrutura')
+        ->and($result['Infraestrutura'])->toBe(2)
+        ->and($result)->toHaveKey('Sem categoria');
+});
+
+it('reportTimeline preenche dias sem chamados com zero', function () {
+    $service = app(\App\Services\TicketService::class);
+    $result  = $service->reportTimeline(null, null); // últimos 30 dias
+
+    expect($result['categories'])->toHaveCount(30)
+        ->and($result['opened'])->toHaveCount(30)
+        ->and($result['resolved'])->toHaveCount(30);
+});
+
+it('reportByTechnicianAndStatus retorna série por técnico', function () {
+    $tec = tecnico(['name' => 'Técnico Alpha']);
+    ticket(['technician_id' => $tec->id, 'status' => 'resolved']);
+    ticket(['technician_id' => $tec->id, 'status' => 'closed']);
+
+    $service = app(\App\Services\TicketService::class);
+    $result  = $service->reportByTechnicianAndStatus(null, null);
+
+    expect($result['techNames'])->toContain('Técnico Alpha')
+        ->and($result['series'])->not->toBeEmpty();
 });

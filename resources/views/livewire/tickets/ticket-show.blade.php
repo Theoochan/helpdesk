@@ -17,42 +17,61 @@
                 </div>
             </div>
 
-            {{-- Ações do técnico --}}
-            @if(auth()->user()->isTechnician())
+            {{-- Ações do TÉCNICO: assumir e resolver --}}
+            @if(auth()->user()->isTechnician() && !$ticket->isTerminal())
                 <div class="flex flex-col gap-2 shrink-0">
                     @if($ticket->status === 'open')
-                        <button wire:click="assign"
-                                wire:loading.attr="disabled"
+                        <button wire:click="assign" wire:loading.attr="disabled"
                                 class="px-3 py-1.5 text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors">
                             Assumir Chamado
                         </button>
                     @endif
                     @if($ticket->status === 'in_progress')
-                        <button wire:click="resolve"
-                                wire:loading.attr="disabled"
+                        <button wire:click="resolve" wire:loading.attr="disabled"
                                 class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
                             Marcar Resolvido
-                        </button>
-                    @endif
-                    @if(in_array($ticket->status, ['resolved']))
-                        <button wire:click="close"
-                                wire:loading.attr="disabled"
-                                class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                            Fechar
                         </button>
                     @endif
                 </div>
             @endif
 
-            {{-- Ação do colaborador: fechar após resolução --}}
-            @if(auth()->user()->isCollaborator() && $ticket->status === 'resolved')
-                <button wire:click="close"
-                        class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                    Confirmar Resolução e Fechar
-                </button>
+            {{-- Ações do COLABORADOR dono --}}
+            @if(auth()->user()->isCollaborator() && $ticket->user_id === auth()->id() && !$ticket->isTerminal())
+                <div class="flex flex-col gap-2 shrink-0" x-data="{ confirmCancel: false }">
+
+                    {{-- Fechar: apenas quando resolvido --}}
+                    @if($ticket->status === 'resolved')
+                        <button wire:click="close" wire:loading.attr="disabled"
+                                class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                            ✓ Confirmar e Fechar
+                        </button>
+                    @endif
+
+                    {{-- Cancelar: de qualquer status ativo, com confirmação Alpine --}}
+                    <div>
+                        <button @click="confirmCancel = true" x-show="!confirmCancel"
+                                class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors w-full">
+                            Cancelar Chamado
+                        </button>
+                        <div x-show="confirmCancel" x-cloak class="border border-red-300 bg-red-50 rounded-lg p-3 text-xs space-y-2">
+                            <p class="text-red-700 font-medium">Confirmar cancelamento?</p>
+                            <div class="flex gap-2">
+                                <button wire:click="cancel" wire:loading.attr="disabled"
+                                        class="flex-1 py-1.5 text-white bg-red-600 hover:bg-red-700 rounded font-medium transition-colors">
+                                    Sim, cancelar
+                                </button>
+                                <button @click="confirmCancel = false"
+                                        class="flex-1 py-1.5 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded font-medium transition-colors">
+                                    Não
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             @endif
         </div>
 
+        {{-- Metadados --}}
         <div class="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3 text-sm">
             <div>
                 <span class="text-gray-500">Solicitante:</span>
@@ -64,6 +83,20 @@
                     {{ $ticket->technician ? $ticket->technician->name : '—' }}
                 </span>
             </div>
+            @if($ticket->resolved_at)
+                <div>
+                    <span class="text-gray-500">Resolvido em:</span>
+                    <span class="font-medium text-gray-800 ml-1">{{ $ticket->resolved_at->format('d/m/Y H:i') }}</span>
+                </div>
+            @endif
+            @if($ticket->closed_at)
+                <div>
+                    <span class="text-gray-500">
+                        {{ $ticket->status === 'cancelled' ? 'Cancelado em:' : 'Fechado em:' }}
+                    </span>
+                    <span class="font-medium text-gray-800 ml-1">{{ $ticket->closed_at->format('d/m/Y H:i') }}</span>
+                </div>
+            @endif
         </div>
 
         <div class="mt-4 pt-4 border-t border-gray-100">
@@ -73,6 +106,17 @@
             </div>
         </div>
     </div>
+
+    {{-- Banner informativo para status terminais --}}
+    @if($ticket->isTerminal())
+        <div class="rounded-xl px-5 py-4 text-sm font-medium flex items-center gap-3
+            {{ $ticket->status === 'cancelled' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-gray-100 border border-gray-200 text-gray-600' }}">
+            <span class="text-lg">{{ $ticket->status === 'cancelled' ? '🚫' : '🔒' }}</span>
+            {{ $ticket->status === 'cancelled'
+                ? 'Este chamado foi cancelado. Nenhuma ação adicional é possível.'
+                : 'Este chamado está fechado. Nenhuma ação adicional é possível.' }}
+        </div>
+    @endif
 
     {{-- Comentários --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -107,8 +151,8 @@
             </div>
         @endif
 
-        {{-- Formulário de novo comentário --}}
-        @if($ticket->status !== 'closed')
+        {{-- Formulário de comentário — bloqueado em status terminais --}}
+        @if(!$ticket->isTerminal())
             <form wire:submit="addComment" class="mt-5 pt-4 border-t border-gray-100 space-y-3">
                 <textarea wire:model="commentBody" rows="3"
                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm"

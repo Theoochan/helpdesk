@@ -38,10 +38,23 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     @foreach($orders as $order)
-                        <tr class="hover:bg-gray-50 transition-colors">
+                        @php
+                            $isUnread = is_null($order->my_read_at)
+                                || $order->my_read_at < $order->updated_at->format('Y-m-d H:i:s');
+                        @endphp
+                        <tr class="hover:bg-gray-50 transition-colors {{ $isUnread ? 'bg-blue-50/40' : '' }}">
                             <td class="px-4 py-3 text-sm text-gray-400">#{{ $order->id }}</td>
-                            <td class="px-4 py-3 text-sm font-medium text-gray-900 max-w-xs truncate">
-                                {{ $order->title }}
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    @if($isUnread)
+                                        <span class="inline-block w-2 h-2 rounded-full bg-blue-500 shrink-0"
+                                              title="Novo conteúdo"></span>
+                                    @endif
+                                    <span class="text-sm font-medium text-gray-900 max-w-xs truncate
+                                                 {{ $isUnread ? 'font-semibold' : '' }}">
+                                        {{ $order->title }}
+                                    </span>
+                                </div>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-600">{{ $order->requester->name }}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">{{ $order->assignedTo->name }}</td>

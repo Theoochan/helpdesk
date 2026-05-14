@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderComment;
+use App\Models\ServiceOrderRead;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -11,7 +12,7 @@ class ServiceOrderService
 {
     public function create(User $requester, array $data): ServiceOrder
     {
-        return ServiceOrder::create([
+        $order = ServiceOrder::create([
             'title'          => $data['title'],
             'description'    => $data['description'],
             'priority'       => $data['priority'] ?? ServiceOrder::PRIORITY_MEDIUM,
@@ -19,6 +20,11 @@ class ServiceOrderService
             'requester_id'   => $requester->id,
             'status'         => ServiceOrder::STATUS_PENDING,
         ]);
+
+        // Marca como lida para o criador
+        ServiceOrderRead::markRead($requester->id, $order->id);
+
+        return $order;
     }
 
     public function start(ServiceOrder $order): ServiceOrder
@@ -49,16 +55,18 @@ class ServiceOrderService
     {
         return ServiceOrder::query()
             ->with(['requester', 'assignedTo'])
+            ->withReadStatus($user->id)
             ->forTechnician($user->id)
             ->byStatus($filters['status'] ?? null)
             ->latest()
             ->paginate(15);
     }
 
-    public function listAll(array $filters = []): LengthAwarePaginator
+    public function listAll(User $reader, array $filters = []): LengthAwarePaginator
     {
         return ServiceOrder::query()
             ->with(['requester', 'assignedTo'])
+            ->withReadStatus($reader->id)
             ->byStatus($filters['status'] ?? null)
             ->latest()
             ->paginate(15);

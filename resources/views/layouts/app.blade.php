@@ -19,6 +19,12 @@
                     </a>
 
                     @auth
+                    @php
+                        $navUnreadTickets = \App\Models\TicketRead::unreadCountFor(auth()->user());
+                        $navUnreadOrders  = auth()->user()->isTechnician()
+                            ? \App\Models\ServiceOrderRead::unreadCountFor(auth()->user())
+                            : 0;
+                    @endphp
                     <div class="hidden md:flex gap-1 ml-6">
                         @if(auth()->user()->isTechnician())
                             <a href="{{ route('technician.dashboard') }}"
@@ -26,27 +32,42 @@
                                 Dashboard
                             </a>
                             <a href="{{ route('tickets.index') }}"
-                               class="px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
+                               class="relative px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
                                 Chamados
+                                @if($navUnreadTickets > 0)
+                                    <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-[18px] text-center bg-red-500 text-white rounded-full">
+                                        {{ $navUnreadTickets > 99 ? '99+' : $navUnreadTickets }}
+                                    </span>
+                                @endif
                             </a>
                             <a href="{{ route('orders.index') }}"
-                               class="px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
+                               class="relative px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
                                 OS Internas
+                                @if($navUnreadOrders > 0)
+                                    <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-[18px] text-center bg-red-500 text-white rounded-full">
+                                        {{ $navUnreadOrders > 99 ? '99+' : $navUnreadOrders }}
+                                    </span>
+                                @endif
                             </a>
                             <a href="{{ route('reports.index') }}"
                                class="px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
                                 Relatórios
                             </a>
                             @can('manage-technicians')
-                            <a href="{{ route('admin.technicians') }}"
+                            <a href="{{ route('admin.index') }}"
                                class="px-3 py-2 rounded-md text-sm font-medium text-purple-200 hover:bg-purple-600 hover:text-white transition-colors">
                                 ⚙ Administração
                             </a>
                             @endcan
                         @else
                             <a href="{{ route('tickets.index') }}"
-                               class="px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
+                               class="relative px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
                                 Meus Chamados
+                                @if($navUnreadTickets > 0)
+                                    <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-[18px] text-center bg-red-500 text-white rounded-full">
+                                        {{ $navUnreadTickets > 99 ? '99+' : $navUnreadTickets }}
+                                    </span>
+                                @endif
                             </a>
                             <a href="{{ route('tickets.create') }}"
                                class="px-3 py-2 rounded-md text-sm font-medium text-brand-100 hover:bg-brand-600 hover:text-white transition-colors">
@@ -119,5 +140,6 @@
 </div>
 
 @livewireScripts
+@stack('scripts')
 </body>
 </html>

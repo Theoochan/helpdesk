@@ -35,7 +35,7 @@ class TicketList extends Component
         $filters = ['status' => $this->status ?: null];
 
         if ($user->isTechnician()) {
-            $tickets = $service->listForTechnician($filters);
+            $tickets = $service->listForTechnician($filters, $user->id);
         } else {
             $tickets = $service->listForCollaborator($user, $filters);
         }

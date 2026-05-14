@@ -110,3 +110,58 @@ it('técnico vê chamado de qualquer colaborador na tela de detalhe', function (
         ->test(TicketShow::class, ['ticket' => $t])
         ->assertOk();
 });
+
+it('técnico não consegue fechar chamado via Livewire', function () {
+    $tec  = tecnico();
+    $user = colaborador();
+    $t    = ticket(['user_id' => $user->id, 'status' => 'resolved', 'technician_id' => $tec->id]);
+
+    Livewire::actingAs($tec)
+        ->test(TicketShow::class, ['ticket' => $t])
+        ->call('close')
+        ->assertForbidden();
+});
+
+it('técnico não consegue cancelar chamado via Livewire', function () {
+    $tec  = tecnico();
+    $user = colaborador();
+    $t    = ticket(['user_id' => $user->id, 'status' => 'open']);
+
+    Livewire::actingAs($tec)
+        ->test(TicketShow::class, ['ticket' => $t])
+        ->call('cancel')
+        ->assertForbidden();
+});
+
+it('colaborador pode cancelar chamado resolvido (ainda não fechado)', function () {
+    $tec  = tecnico();
+    $user = colaborador();
+    $t    = ticket(['user_id' => $user->id, 'status' => 'resolved', 'technician_id' => $tec->id]);
+
+    Livewire::actingAs($user)
+        ->test(TicketShow::class, ['ticket' => $t])
+        ->call('cancel')
+        ->assertHasNoErrors();
+
+    expect($t->fresh()->status)->toBe('cancelled');
+});
+
+it('colaborador não pode cancelar chamado já fechado', function () {
+    $user = colaborador();
+    $t    = ticket(['user_id' => $user->id, 'status' => 'closed']);
+
+    Livewire::actingAs($user)
+        ->test(TicketShow::class, ['ticket' => $t])
+        ->call('cancel')
+        ->assertForbidden();
+});
+
+it('colaborador não pode cancelar chamado já cancelado', function () {
+    $user = colaborador();
+    $t    = ticket(['user_id' => $user->id, 'status' => 'cancelled']);
+
+    Livewire::actingAs($user)
+        ->test(TicketShow::class, ['ticket' => $t])
+        ->call('cancel')
+        ->assertForbidden();
+});

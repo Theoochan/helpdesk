@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->text('description');
-            $table->enum('status', ['open', 'in_progress', 'resolved', 'closed'])->default('open');
+            $table->enum('status', ['open', 'in_progress', 'resolved', 'closed', 'cancelled'])->default('open');
             $table->enum('priority', ['low', 'medium', 'high'])->default('medium');
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('technician_id')->nullable()->constrained('users')->nullOnDelete();

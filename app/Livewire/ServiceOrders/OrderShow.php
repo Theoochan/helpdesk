@@ -3,6 +3,7 @@
 namespace App\Livewire\ServiceOrders;
 
 use App\Models\ServiceOrder;
+use App\Models\ServiceOrderRead;
 use App\Services\ServiceOrderService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -20,6 +21,7 @@ class OrderShow extends Component
     {
         $this->authorize('view', $order);
         $this->order = $order;
+        $this->markRead();
     }
 
     public function start(ServiceOrderService $service): void
@@ -27,6 +29,7 @@ class OrderShow extends Component
         $this->authorize('start', $this->order);
         $service->start($this->order);
         $this->order->refresh();
+        $this->markRead();
         session()->flash('success', 'OS iniciada!');
     }
 
@@ -35,6 +38,7 @@ class OrderShow extends Component
         $this->authorize('finish', $this->order);
         $service->finish($this->order);
         $this->order->refresh();
+        $this->markRead();
         session()->flash('success', 'OS finalizada!');
     }
 
@@ -45,6 +49,12 @@ class OrderShow extends Component
         $service->addComment($this->order, auth()->user(), $this->commentBody);
         $this->commentBody = '';
         $this->order->refresh();
+        $this->markRead();
+    }
+
+    private function markRead(): void
+    {
+        ServiceOrderRead::markRead(auth()->id(), $this->order->id);
     }
 
     public function render()

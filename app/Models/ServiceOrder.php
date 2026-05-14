@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -81,6 +82,19 @@ class ServiceOrder extends Model
             self::PRIORITY_HIGH   => 'red',
             default               => 'gray',
         };
+    }
+
+    /**
+     * Adiciona coluna my_read_at para indicador de novidade nas OS.
+     */
+    public function scopeWithReadStatus(Builder $query, int $userId): Builder
+    {
+        return $query->addSelect([
+            'my_read_at' => ServiceOrderRead::select('read_at')
+                ->whereColumn('service_order_id', 'service_orders.id')
+                ->where('user_id', $userId)
+                ->limit(1),
+        ]);
     }
 
     public function scopeForTechnician($query, int $userId)

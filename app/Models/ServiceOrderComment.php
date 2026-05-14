@@ -12,6 +12,9 @@ class ServiceOrderComment extends Model
 {
     use HasFactory;
 
+    /** Atualiza updated_at da OS pai ao salvar/deletar */
+    protected $touches = ['serviceOrder'];
+
     public function serviceOrder(): BelongsTo
     {
         return $this->belongsTo(ServiceOrder::class);

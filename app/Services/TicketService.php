@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Ticket;
 use App\Models\TicketComment;
+use App\Models\TicketRead;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -12,7 +14,7 @@ class TicketService
 {
     public function createTicket(User $author, array $data): Ticket
     {
-        return Ticket::create([
+        $ticket = Ticket::create([
             'title'       => $data['title'],
             'description' => $data['description'],
             'priority'    => $data['priority'] ?? Ticket::PRIORITY_MEDIUM,
@@ -20,6 +22,11 @@ class TicketService
             'user_id'     => $author->id,
             'status'      => Ticket::STATUS_OPEN,
         ]);
+
+        // Marca como lido para o criador — ele já sabe do próprio chamado
+        TicketRead::markRead($author->id, $ticket->id);
+
+        return $ticket;
     }
 
     public function assignTechnician(Ticket $ticket, User $technician): Ticket
@@ -42,10 +49,30 @@ class TicketService
         return $ticket->fresh();
     }
 
+    /**
+     * Fecha o chamado: apenas o colaborador dono confirma a resolução.
+     */
     public function closeTicket(Ticket $ticket): Ticket
     {
+        abort_unless($ticket->status === Ticket::STATUS_RESOLVED, 422, 'Apenas chamados resolvidos podem ser fechados.');
+
         $ticket->update([
             'status'    => Ticket::STATUS_CLOSED,
+            'closed_at' => now(),
+        ]);
+
+        return $ticket->fresh();
+    }
+
+    /**
+     * Cancela o chamado: apenas o colaborador dono, enquanto não estiver terminal.
+     */
+    public function cancelTicket(Ticket $ticket): Ticket
+    {
+        abort_unless($ticket->isCancellable(), 422, 'Este chamado não pode mais ser cancelado.');
+
+        $ticket->update([
+            'status'    => Ticket::STATUS_CANCELLED,
             'closed_at' => now(),
         ]);
 
@@ -66,6 +93,7 @@ class TicketService
     {
         return Ticket::query()
             ->with(['category', 'technician'])
+            ->withReadStatus($user->id)
             ->forCollaborator($user->id)
             ->byStatus($filters['status'] ?? null)
             ->byPeriod($filters['from'] ?? null, $filters['to'] ?? null)
@@ -73,16 +101,145 @@ class TicketService
             ->paginate(15);
     }
 
-    public function listForTechnician(array $filters = []): LengthAwarePaginator
+    public function listForTechnician(array $filters = [], ?int $readerUserId = null): LengthAwarePaginator
     {
         return Ticket::query()
             ->with(['user', 'category', 'technician'])
+            ->when($readerUserId, fn ($q) => $q->withReadStatus($readerUserId))
             ->byStatus($filters['status'] ?? null)
             ->byPeriod($filters['from'] ?? null, $filters['to'] ?? null)
             ->when(isset($filters['technician_id']), fn($q) => $q->where('technician_id', $filters['technician_id']))
             ->latest()
             ->paginate(15);
     }
+
+    // ─── Relatórios analíticos ───────────────────────────────────────────────
+
+    /** Contagem por status no período → ['open' => 12, 'resolved' => 30, ...] */
+    public function reportByStatus(?string $from, ?string $to): array
+    {
+        return Ticket::query()
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->byPeriod($from, $to)
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+    }
+
+    /** Contagem por categoria no período → [['name' => 'Rede', 'total' => 5], ...] */
+    public function reportByCategory(?string $from, ?string $to): array
+    {
+        $query = Ticket::query()
+            ->select(
+                DB::raw("COALESCE(categories.name, 'Sem categoria') AS cat_name"),
+                DB::raw('COUNT(*) AS total')
+            )
+            ->leftJoin('categories', 'tickets.category_id', '=', 'categories.id')
+            ->groupBy(DB::raw("COALESCE(categories.name, 'Sem categoria')"))
+            ->orderByDesc('total')
+            ->limit(10);
+
+        // Qualifica a coluna para evitar ambiguidade com o LEFT JOIN
+        if ($from) {
+            $query->whereDate('tickets.created_at', '>=', $from);
+        }
+        if ($to) {
+            $query->whereDate('tickets.created_at', '<=', $to);
+        }
+
+        return $query->get()
+            ->mapWithKeys(fn ($r) => [$r->cat_name => (int) $r->total])
+            ->toArray();
+    }
+
+    /** Volume diário: chamados abertos e resolvidos no período. */
+    public function reportTimeline(?string $from, ?string $to): array
+    {
+        $start = $from
+            ? Carbon::parse($from)->startOfDay()
+            : Carbon::now()->subDays(29)->startOfDay();
+        $end = $to
+            ? Carbon::parse($to)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        // Monta mapa de todas as datas do período
+        $dates = [];
+        for ($d = $start->copy(); $d <= $end; $d->addDay()) {
+            $dates[$d->format('Y-m-d')] = 0;
+        }
+
+        $opened = Ticket::query()
+            ->selectRaw('DATE(created_at) AS day, COUNT(*) AS total')
+            ->whereBetween('created_at', [$start, $end])
+            ->groupByRaw('DATE(created_at)')
+            ->pluck('total', 'day')
+            ->toArray();
+
+        $resolved = Ticket::query()
+            ->selectRaw('DATE(resolved_at) AS day, COUNT(*) AS total')
+            ->whereBetween('resolved_at', [$start, $end])
+            ->whereNotNull('resolved_at')
+            ->groupByRaw('DATE(resolved_at)')
+            ->pluck('total', 'day')
+            ->toArray();
+
+        $days = array_keys($dates);
+
+        return [
+            'categories' => array_map(fn ($d) => Carbon::parse($d)->format('d/m'), $days),
+            'opened'     => array_map(fn ($d) => (int) ($opened[$d] ?? 0), $days),
+            'resolved'   => array_map(fn ($d) => (int) ($resolved[$d] ?? 0), $days),
+        ];
+    }
+
+    /** Chamados por técnico × status → matriz para gráfico de barras empilhadas. */
+    public function reportByTechnicianAndStatus(?string $from, ?string $to): array
+    {
+        $rows = Ticket::query()
+            ->select('users.name AS tech_name', 'tickets.status', DB::raw('COUNT(*) AS total'))
+            ->join('users', 'tickets.technician_id', '=', 'users.id')
+            ->whereNotNull('tickets.technician_id')
+            // Qualifica para evitar ambiguidade com users.created_at no JOIN
+            ->when($from, fn ($q) => $q->whereDate('tickets.created_at', '>=', $from))
+            ->when($to,   fn ($q) => $q->whereDate('tickets.created_at', '<=', $to))
+            ->groupBy('users.name', 'tickets.status')
+            ->get();
+
+        $byTech = [];
+        foreach ($rows as $row) {
+            $byTech[$row->tech_name][$row->status] = (int) $row->total;
+        }
+
+        if (empty($byTech)) {
+            return ['techNames' => [], 'series' => []];
+        }
+
+        // Ordena pelos com mais chamados, limita a 10
+        uasort($byTech, fn ($a, $b) => array_sum($b) - array_sum($a));
+        $byTech = array_slice($byTech, 0, 10, true);
+
+        $techNames = array_keys($byTech);
+
+        $statusConfig = [
+            Ticket::STATUS_OPEN        => ['Aberto',          '#3b82f6'],
+            Ticket::STATUS_IN_PROGRESS => ['Em Atendimento',  '#f59e0b'],
+            Ticket::STATUS_RESOLVED    => ['Resolvido',       '#22c55e'],
+            Ticket::STATUS_CLOSED      => ['Fechado',         '#9ca3af'],
+            Ticket::STATUS_CANCELLED   => ['Cancelado',       '#ef4444'],
+        ];
+
+        $series = [];
+        foreach ($statusConfig as $status => [$label, $color]) {
+            $data = array_map(fn ($n) => $byTech[$n][$status] ?? 0, $techNames);
+            if (array_sum($data) > 0) {
+                $series[] = ['name' => $label, 'color' => $color, 'data' => array_values($data)];
+            }
+        }
+
+        return ['techNames' => $techNames, 'series' => $series];
+    }
+
+    // ─── Relatórios legados (ranking) ────────────────────────────────────────
 
     public function reportByTechnician(?string $from, ?string $to): array
     {
@@ -114,6 +271,7 @@ class TicketService
             'in_progress' => Ticket::where('status', Ticket::STATUS_IN_PROGRESS)->count(),
             'resolved'    => Ticket::where('status', Ticket::STATUS_RESOLVED)->count(),
             'closed'      => Ticket::where('status', Ticket::STATUS_CLOSED)->count(),
+            'cancelled'   => Ticket::where('status', Ticket::STATUS_CANCELLED)->count(),
         ];
     }
 }

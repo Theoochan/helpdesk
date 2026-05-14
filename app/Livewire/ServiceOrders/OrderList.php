@@ -32,7 +32,7 @@ class OrderList extends Component
         $filters = ['status' => $this->status ?: null];
 
         $orders = $user->isAdmin()
-            ? $service->listAll($filters)
+            ? $service->listAll($user, $filters)
             : $service->listForTechnician($user, $filters);
 
         return view('livewire.service-orders.order-list', compact('orders'));

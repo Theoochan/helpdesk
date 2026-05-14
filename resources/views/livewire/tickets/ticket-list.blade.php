@@ -1,7 +1,7 @@
 <div>
     {{-- Filtros --}}
     <div class="mb-5 flex flex-wrap items-center gap-2">
-        @foreach([''=>'Todos', 'open'=>'Aberto', 'in_progress'=>'Em Atendimento', 'resolved'=>'Resolvido', 'closed'=>'Fechado'] as $val => $label)
+        @foreach([''=>'Todos', 'open'=>'Aberto', 'in_progress'=>'Em Atendimento', 'resolved'=>'Resolvido', 'closed'=>'Fechado', 'cancelled'=>'Cancelado'] as $val => $label)
             <button wire:click="$set('status', '{{ $val }}')"
                     class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
                            {{ $status === $val ? 'bg-brand-600 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50' }}">
@@ -40,10 +40,25 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     @foreach($tickets as $ticket)
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-4 py-3 text-sm text-gray-400">#{{ $ticket->id }}</td>
+                        @php
+                            $isUnread = is_null($ticket->my_read_at)
+                                || $ticket->my_read_at < $ticket->updated_at->format('Y-m-d H:i:s');
+                        @endphp
+                        <tr class="hover:bg-gray-50 transition-colors {{ $isUnread ? 'bg-blue-50/40' : '' }}">
+                            <td class="px-4 py-3 text-sm text-gray-400">
+                                #{{ $ticket->id }}
+                            </td>
                             <td class="px-4 py-3">
-                                <p class="text-sm font-medium text-gray-900 truncate max-w-xs">{{ $ticket->title }}</p>
+                                <div class="flex items-center gap-2">
+                                    @if($isUnread)
+                                        <span class="inline-block w-2 h-2 rounded-full bg-blue-500 shrink-0"
+                                              title="Novo conteúdo"></span>
+                                    @endif
+                                    <p class="text-sm font-medium text-gray-900 truncate max-w-xs
+                                              {{ $isUnread ? 'font-semibold' : '' }}">
+                                        {{ $ticket->title }}
+                                    </p>
+                                </div>
                             </td>
                             @if(auth()->user()->isTechnician())
                                 <td class="px-4 py-3 text-sm text-gray-600">{{ $ticket->user->name }}</td>

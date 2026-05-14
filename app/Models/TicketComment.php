@@ -12,6 +12,9 @@ class TicketComment extends Model
 {
     use HasFactory;
 
+    /** Atualiza updated_at do ticket pai ao salvar/deletar */
+    protected $touches = ['ticket'];
+
     protected function casts(): array
     {
         return [

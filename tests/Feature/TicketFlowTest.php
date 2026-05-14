@@ -102,15 +102,63 @@ it('fluxo completo: aberto → em atendimento → resolvido → fechado', functi
         ->and($t->closed_at)->not->toBeNull();
 });
 
-it('técnico pode fechar chamado resolvido diretamente', function () {
-    $tec = tecnico();
-    $t   = ticket(['status' => 'resolved', 'technician_id' => $tec->id]);
+it('técnico NÃO pode fechar chamado — apenas o colaborador dono pode', function () {
+    $tec  = tecnico();
+    $user = colaborador();
+    $t    = ticket(['user_id' => $user->id, 'status' => 'resolved', 'technician_id' => $tec->id]);
 
     Livewire::actingAs($tec)
         ->test(TicketShow::class, ['ticket' => $t])
-        ->call('close');
+        ->call('close')
+        ->assertForbidden();
 
-    expect($t->fresh()->status)->toBe('closed');
+    expect($t->fresh()->status)->toBe('resolved'); // status não mudou
+});
+
+it('colaborador cancela chamado aberto', function () {
+    $user = colaborador();
+    $t    = ticket(['user_id' => $user->id, 'status' => 'open']);
+
+    Livewire::actingAs($user)
+        ->test(TicketShow::class, ['ticket' => $t])
+        ->call('cancel')
+        ->assertHasNoErrors();
+
+    $t->refresh();
+    expect($t->status)->toBe('cancelled')
+        ->and($t->closed_at)->not->toBeNull();
+});
+
+it('colaborador cancela chamado em atendimento', function () {
+    $tec  = tecnico();
+    $user = colaborador();
+    $t    = ticket(['user_id' => $user->id, 'status' => 'in_progress', 'technician_id' => $tec->id]);
+
+    Livewire::actingAs($user)
+        ->test(TicketShow::class, ['ticket' => $t])
+        ->call('cancel')
+        ->assertHasNoErrors();
+
+    expect($t->fresh()->status)->toBe('cancelled');
+});
+
+it('colaborador NÃO pode cancelar chamado que não é seu', function () {
+    $dono  = colaborador();
+    $outro = colaborador();
+    $t     = ticket(['user_id' => $dono->id, 'status' => 'open']);
+
+    Livewire::actingAs($outro)
+        ->test(TicketShow::class, ['ticket' => $t])
+        ->assertForbidden(); // mount já nega a visualização
+});
+
+it('chamado cancelado é terminal — não permite comentários', function () {
+    $user = colaborador();
+    $t    = ticket(['user_id' => $user->id, 'status' => 'cancelled']);
+
+    Livewire::actingAs($user)
+        ->test(TicketShow::class, ['ticket' => $t])
+        ->assertDontSee('Comentar');
 });
 
 // ─── Comentários ────────────────────────────────────────────────────────────
