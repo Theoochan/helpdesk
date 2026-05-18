@@ -16,22 +16,23 @@ class OrderList extends Component
     #[Url]
     public string $status = '';
 
+    #[Url]
+    public string $tab = 'mine';
+
     public function mount(): void
     {
         $this->authorize('viewAny', \App\Models\ServiceOrder::class);
     }
 
-    public function updatingStatus(): void
-    {
-        $this->resetPage();
-    }
+    public function updatingStatus(): void { $this->resetPage(); }
+    public function updatingTab(): void    { $this->resetPage(); }
 
     public function render(ServiceOrderService $service)
     {
         $user    = auth()->user();
         $filters = ['status' => $this->status ?: null];
 
-        $orders = $user->isAdmin()
+        $orders = ($this->tab === 'all')
             ? $service->listAll($user, $filters)
             : $service->listForTechnician($user, $filters);
 

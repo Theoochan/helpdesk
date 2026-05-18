@@ -2,7 +2,6 @@
 
 use App\Livewire\Admin\AdminManager;
 use App\Livewire\Auth\Login;
-use App\Livewire\Auth\Register;
 use App\Livewire\Reports\TicketReports;
 use App\Livewire\ServiceOrders\CreateOrder;
 use App\Livewire\ServiceOrders\OrderList;
@@ -18,8 +17,7 @@ Route::get('/', fn () => redirect()->route(Auth::check() ? 'dashboard' : 'login'
 
 // ─── Guest ───────────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
-    Route::get('/login',    Login::class)->name('login');
-    Route::get('/register', Register::class)->name('register');
+    Route::get('/login', Login::class)->name('login');
 });
 
 Route::post('/logout', function () {

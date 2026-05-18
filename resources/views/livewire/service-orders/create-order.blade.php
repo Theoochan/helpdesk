@@ -75,6 +75,17 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Prazo
+                    <span class="text-gray-400 font-normal text-xs ml-1">(opcional)</span>
+                </label>
+                <input wire:model="due_date" type="date"
+                       min="{{ now()->toDateString() }}"
+                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm">
+                @error('due_date') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
                     Descrição <span class="text-red-500">*</span>
                 </label>
                 <textarea wire:model="description" rows="5"

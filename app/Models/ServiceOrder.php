@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['title', 'description', 'status', 'priority', 'requester_id', 'assigned_to_id', 'done_at'])]
+#[Fillable(['title', 'description', 'status', 'priority', 'requester_id', 'assigned_to_id', 'done_at', 'due_date', 'transfer_requested_to_id', 'transfer_note'])]
 class ServiceOrder extends Model
 {
     use HasFactory;
@@ -17,6 +17,7 @@ class ServiceOrder extends Model
     const STATUS_PENDING     = 'pending';
     const STATUS_IN_PROGRESS = 'in_progress';
     const STATUS_DONE        = 'done';
+    const STATUS_CANCELLED   = 'cancelled';
 
     const PRIORITY_LOW    = 'low';
     const PRIORITY_MEDIUM = 'medium';
@@ -25,7 +26,8 @@ class ServiceOrder extends Model
     protected function casts(): array
     {
         return [
-            'done_at' => 'datetime',
+            'done_at'  => 'datetime',
+            'due_date' => 'date',
         ];
     }
 
@@ -44,12 +46,53 @@ class ServiceOrder extends Model
         return $this->hasMany(ServiceOrderComment::class);
     }
 
+    public function transferRequestedTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'transfer_requested_to_id');
+    }
+
+    public function isCancellable(): bool
+    {
+        return in_array($this->status, [self::STATUS_PENDING, self::STATUS_IN_PROGRESS]);
+    }
+
+    public function isTerminal(): bool
+    {
+        return in_array($this->status, [self::STATUS_DONE, self::STATUS_CANCELLED]);
+    }
+
+    public function hasPendingTransfer(): bool
+    {
+        return !is_null($this->transfer_requested_to_id);
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->due_date && !$this->isTerminal() && $this->due_date->isPast();
+    }
+
+    public function dueBadge(): ?array
+    {
+        if (!$this->due_date || $this->isTerminal()) {
+            return null;
+        }
+        $days = (int) now()->startOfDay()->diffInDays($this->due_date->startOfDay(), false);
+        if ($days < 0) {
+            return ['label' => 'Atrasado ' . abs($days) . 'd', 'color' => 'red'];
+        }
+        if ($days <= 2) {
+            return ['label' => $days === 0 ? 'Vence hoje' : 'Vence em ' . $days . 'd', 'color' => 'yellow'];
+        }
+        return ['label' => $days . 'd restantes', 'color' => 'green'];
+    }
+
     public function statusLabel(): string
     {
         return match ($this->status) {
             self::STATUS_PENDING     => 'Pendente',
             self::STATUS_IN_PROGRESS => 'Em Andamento',
             self::STATUS_DONE        => 'Finalizada',
+            self::STATUS_CANCELLED   => 'Cancelada',
             default                  => $this->status,
         };
     }
@@ -60,6 +103,7 @@ class ServiceOrder extends Model
             self::STATUS_PENDING     => 'yellow',
             self::STATUS_IN_PROGRESS => 'blue',
             self::STATUS_DONE        => 'green',
+            self::STATUS_CANCELLED   => 'red',
             default                  => 'gray',
         };
     }
@@ -107,6 +151,16 @@ class ServiceOrder extends Model
 
     public function scopeByStatus($query, ?string $status)
     {
+        return $status ? $query->where('status', $status) : $query;
+    }
+
+    public function scopeByStatusOrOverdue($query, ?string $status)
+    {
+        if ($status === 'overdue') {
+            return $query->whereNotIn('status', [self::STATUS_DONE, self::STATUS_CANCELLED])
+                         ->whereNotNull('due_date')
+                         ->whereDate('due_date', '<', now()->toDateString());
+        }
         return $status ? $query->where('status', $status) : $query;
     }
 }

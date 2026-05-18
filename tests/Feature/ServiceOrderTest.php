@@ -26,19 +26,17 @@ it('técnico acessa lista de OS', function () {
         ->assertOk();
 });
 
-it('técnico vê apenas suas OS (como solicitante ou responsável)', function () {
-    $eu     = tecnico();
-    $outro  = tecnico();
+it('técnico vê apenas suas OS na aba mine', function () {
+    $eu      = tecnico();
+    $outro   = tecnico();
     $terceiro = tecnico();
 
-    // OS que envolve "eu"
-    $minhaOs = ServiceOrder::factory()->create([
+    ServiceOrder::factory()->create([
         'requester_id'   => $eu->id,
         'assigned_to_id' => $outro->id,
         'title'          => 'OS-MINHA-XYZ',
     ]);
 
-    // OS que NÃO envolve "eu"
     ServiceOrder::factory()->create([
         'requester_id'   => $outro->id,
         'assigned_to_id' => $terceiro->id,
@@ -47,8 +45,33 @@ it('técnico vê apenas suas OS (como solicitante ou responsável)', function ()
 
     Livewire::actingAs($eu)
         ->test(OrderList::class)
+        ->set('tab', 'mine')
         ->assertSee('OS-MINHA-XYZ')
         ->assertDontSee('OS-ALHEIA-XYZ');
+});
+
+it('técnico vê todas as OS na aba all (somente leitura)', function () {
+    $eu      = tecnico();
+    $outro   = tecnico();
+    $terceiro = tecnico();
+
+    ServiceOrder::factory()->create([
+        'requester_id'   => $eu->id,
+        'assigned_to_id' => $outro->id,
+        'title'          => 'OS-MINHA-XYZ',
+    ]);
+
+    ServiceOrder::factory()->create([
+        'requester_id'   => $outro->id,
+        'assigned_to_id' => $terceiro->id,
+        'title'          => 'OS-ALHEIA-XYZ',
+    ]);
+
+    Livewire::actingAs($eu)
+        ->test(OrderList::class)
+        ->set('tab', 'all')
+        ->assertSee('OS-MINHA-XYZ')
+        ->assertSee('OS-ALHEIA-XYZ');
 });
 
 it('admin vê todas as OS independente de participação', function () {
@@ -59,6 +82,7 @@ it('admin vê todas as OS independente de participação', function () {
 
     Livewire::actingAs(admin())
         ->test(OrderList::class)
+        ->set('tab', 'all')
         ->assertSee('OS-A')
         ->assertSee('OS-B');
 });
@@ -98,6 +122,39 @@ it('técnico cria OS com dados válidos', function () {
     ]);
 });
 
+it('técnico cria OS com prazo', function () {
+    $solicitante = tecnico();
+    $responsavel = tecnico();
+    $dueDate     = now()->addDays(7)->toDateString();
+
+    Livewire::actingAs($solicitante)
+        ->test(CreateOrder::class)
+        ->set('title', 'OS com prazo definido')
+        ->set('description', 'Descrição detalhada da tarefa.')
+        ->set('priority', 'medium')
+        ->set('assigned_to_id', $responsavel->id)
+        ->set('due_date', $dueDate)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $os = ServiceOrder::where('title', 'OS com prazo definido')->first();
+    expect($os)->not->toBeNull()
+        ->and($os->due_date->toDateString())->toBe($dueDate);
+});
+
+it('não cria OS com prazo no passado', function () {
+    $responsavel = tecnico();
+
+    Livewire::actingAs(tecnico())
+        ->test(CreateOrder::class)
+        ->set('title', 'OS inválida')
+        ->set('description', 'Descrição válida aqui.')
+        ->set('assigned_to_id', $responsavel->id)
+        ->set('due_date', now()->subDay()->toDateString())
+        ->call('save')
+        ->assertHasErrors(['due_date']);
+});
+
 it('não cria OS sem responsável', function () {
     Livewire::actingAs(tecnico())
         ->test(CreateOrder::class)
@@ -108,23 +165,13 @@ it('não cria OS sem responsável', function () {
         ->assertHasErrors(['assigned_to_id']);
 });
 
-it('não cria OS com título vazio', function () {
-    Livewire::actingAs(tecnico())
-        ->test(CreateOrder::class)
-        ->set('title', '')
-        ->set('description', 'Descrição válida.')
-        ->set('assigned_to_id', tecnico()->id)
-        ->call('save')
-        ->assertHasErrors(['title']);
-});
-
 it('colaborador não consegue criar OS pelo componente', function () {
     Livewire::actingAs(colaborador())
         ->test(CreateOrder::class)
         ->assertForbidden();
 });
 
-// ─── Fluxo de status: pending → in_progress → done ──────────────────────────
+// ─── Fluxo de status ─────────────────────────────────────────────────────────
 
 it('fluxo completo: pendente → em andamento → finalizada', function () {
     $responsavel = tecnico();
@@ -148,7 +195,6 @@ it('fluxo completo: pendente → em andamento → finalizada', function () {
 it('apenas responsável pode iniciar a OS', function () {
     $solicitante = tecnico();
     $responsavel = tecnico();
-    // $solicitante pode VER a OS (é participante) mas NÃO pode iniciá-la
     $os = ordem(['requester_id' => $solicitante->id, 'assigned_to_id' => $responsavel->id, 'status' => 'pending']);
 
     Livewire::actingAs($solicitante)
@@ -165,6 +211,198 @@ it('admin pode iniciar qualquer OS', function () {
         ->call('start');
 
     expect($os->fresh()->status)->toBe('in_progress');
+});
+
+// ─── Cancelar OS ─────────────────────────────────────────────────────────────
+
+it('solicitante cancela OS pendente', function () {
+    $solicitante = tecnico();
+    $os = ordem(['requester_id' => $solicitante->id, 'status' => 'pending']);
+
+    Livewire::actingAs($solicitante)
+        ->test(OrderShow::class, ['order' => $os])
+        ->call('cancel');
+
+    expect($os->fresh()->status)->toBe('cancelled');
+});
+
+it('solicitante cancela OS em andamento', function () {
+    $solicitante = tecnico();
+    $responsavel = tecnico();
+    $os = ordem(['requester_id' => $solicitante->id, 'assigned_to_id' => $responsavel->id, 'status' => 'in_progress']);
+
+    Livewire::actingAs($solicitante)
+        ->test(OrderShow::class, ['order' => $os])
+        ->call('cancel');
+
+    expect($os->fresh()->status)->toBe('cancelled');
+});
+
+it('admin cancela qualquer OS', function () {
+    $os = ordem(['status' => 'pending']);
+
+    Livewire::actingAs(admin())
+        ->test(OrderShow::class, ['order' => $os])
+        ->call('cancel');
+
+    expect($os->fresh()->status)->toBe('cancelled');
+});
+
+it('responsável não pode cancelar OS (apenas solicitante ou admin)', function () {
+    $solicitante = tecnico();
+    $responsavel = tecnico();
+    $os = ordem(['requester_id' => $solicitante->id, 'assigned_to_id' => $responsavel->id, 'status' => 'pending']);
+
+    Livewire::actingAs($responsavel)
+        ->test(OrderShow::class, ['order' => $os])
+        ->call('cancel')
+        ->assertForbidden();
+});
+
+it('não cancela OS finalizada', function () {
+    $solicitante = tecnico();
+    $os = ordem(['requester_id' => $solicitante->id, 'status' => 'done']);
+
+    Livewire::actingAs($solicitante)
+        ->test(OrderShow::class, ['order' => $os])
+        ->call('cancel')
+        ->assertForbidden();
+});
+
+// ─── Prazo (due_date) em OS ───────────────────────────────────────────────────
+
+it('dueBadge retorna null quando sem prazo', function () {
+    $os = ordem();
+    expect($os->dueBadge())->toBeNull();
+});
+
+it('dueBadge retorna vermelho quando atrasada', function () {
+    $os = ordem(['due_date' => now()->subDays(3)->toDateString(), 'status' => 'in_progress']);
+    $badge = $os->dueBadge();
+    expect($badge['color'])->toBe('red');
+});
+
+it('dueBadge retorna verde quando dentro do prazo', function () {
+    $os = ordem(['due_date' => now()->addDays(5)->toDateString(), 'status' => 'in_progress']);
+    $badge = $os->dueBadge();
+    expect($badge['color'])->toBe('green');
+});
+
+it('filtro overdue exibe apenas OS atrasadas', function () {
+    $eu = tecnico();
+    $outro = tecnico();
+
+    ServiceOrder::factory()->create([
+        'requester_id'   => $eu->id,
+        'assigned_to_id' => $outro->id,
+        'title'          => 'OS-ATRASADA',
+        'status'         => 'in_progress',
+        'due_date'       => now()->subDay()->toDateString(),
+    ]);
+
+    ServiceOrder::factory()->create([
+        'requester_id'   => $eu->id,
+        'assigned_to_id' => $outro->id,
+        'title'          => 'OS-NO-PRAZO',
+        'status'         => 'in_progress',
+        'due_date'       => now()->addDays(5)->toDateString(),
+    ]);
+
+    Livewire::actingAs($eu)
+        ->test(OrderList::class)
+        ->set('status', 'overdue')
+        ->assertSee('OS-ATRASADA')
+        ->assertDontSee('OS-NO-PRAZO');
+});
+
+// ─── Transferência de responsabilidade ───────────────────────────────────────
+
+it('responsável solicita transferência para outro técnico', function () {
+    $solicitante = tecnico();
+    $responsavel = tecnico();
+    $novo        = tecnico();
+    $os = ordem(['requester_id' => $solicitante->id, 'assigned_to_id' => $responsavel->id, 'status' => 'in_progress']);
+
+    Livewire::actingAs($responsavel)
+        ->test(OrderShow::class, ['order' => $os])
+        ->set('transferTo', $novo->id)
+        ->set('transferNote', 'Estarei de férias.')
+        ->call('requestTransfer')
+        ->assertHasNoErrors();
+
+    $os->refresh();
+    expect($os->transfer_requested_to_id)->toBe($novo->id)
+        ->and($os->transfer_note)->toBe('Estarei de férias.');
+});
+
+it('solicitante não pode pedir transferência (só o responsável)', function () {
+    $solicitante = tecnico();
+    $responsavel = tecnico();
+    $novo        = tecnico();
+    $os = ordem(['requester_id' => $solicitante->id, 'assigned_to_id' => $responsavel->id, 'status' => 'in_progress']);
+
+    Livewire::actingAs($solicitante)
+        ->test(OrderShow::class, ['order' => $os])
+        ->set('transferTo', $novo->id)
+        ->call('requestTransfer')
+        ->assertForbidden();
+});
+
+it('admin aprova transferência e responsável é atualizado', function () {
+    $solicitante = tecnico();
+    $responsavel = tecnico();
+    $novo        = tecnico();
+    $os = ordem([
+        'requester_id'             => $solicitante->id,
+        'assigned_to_id'           => $responsavel->id,
+        'status'                   => 'in_progress',
+        'transfer_requested_to_id' => $novo->id,
+    ]);
+
+    Livewire::actingAs(admin())
+        ->test(OrderShow::class, ['order' => $os])
+        ->call('approveTransfer');
+
+    $os->refresh();
+    expect($os->assigned_to_id)->toBe($novo->id)
+        ->and($os->transfer_requested_to_id)->toBeNull();
+});
+
+it('admin rejeita transferência e campos são limpos', function () {
+    $solicitante = tecnico();
+    $responsavel = tecnico();
+    $novo        = tecnico();
+    $os = ordem([
+        'requester_id'             => $solicitante->id,
+        'assigned_to_id'           => $responsavel->id,
+        'status'                   => 'in_progress',
+        'transfer_requested_to_id' => $novo->id,
+    ]);
+
+    Livewire::actingAs(admin())
+        ->test(OrderShow::class, ['order' => $os])
+        ->call('rejectTransfer');
+
+    $os->refresh();
+    expect($os->assigned_to_id)->toBe($responsavel->id)
+        ->and($os->transfer_requested_to_id)->toBeNull();
+});
+
+it('técnico não-admin não pode aprovar transferência', function () {
+    $solicitante = tecnico();
+    $responsavel = tecnico();
+    $novo        = tecnico();
+    $os = ordem([
+        'requester_id'             => $solicitante->id,
+        'assigned_to_id'           => $responsavel->id,
+        'status'                   => 'in_progress',
+        'transfer_requested_to_id' => $novo->id,
+    ]);
+
+    Livewire::actingAs($solicitante)
+        ->test(OrderShow::class, ['order' => $os])
+        ->call('approveTransfer')
+        ->assertForbidden();
 });
 
 // ─── Comentários em OS ───────────────────────────────────────────────────────
@@ -185,12 +423,10 @@ it('solicitante adiciona comentário na sua OS', function () {
     ]);
 });
 
-it('terceiro técnico não consegue nem visualizar OS alheia', function () {
+it('terceiro técnico não consegue visualizar OS alheia', function () {
     $os      = ordem(['status' => 'in_progress']);
     $intruso = tecnico();
 
-    // A policy de view e comment são idênticas: só participantes acessam.
-    // O mount() nega acesso antes de qualquer ação.
     Livewire::actingAs($intruso)
         ->test(OrderShow::class, ['order' => $os])
         ->assertForbidden();

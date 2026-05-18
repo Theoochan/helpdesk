@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['title', 'description', 'status', 'priority', 'user_id', 'technician_id', 'category_id', 'resolved_at', 'closed_at'])]
+#[Fillable(['title', 'description', 'status', 'priority', 'user_id', 'technician_id', 'category_id', 'resolved_at', 'closed_at', 'due_date'])]
 class Ticket extends Model
 {
     use HasFactory;
@@ -35,6 +35,7 @@ class Ticket extends Model
         return [
             'resolved_at' => 'datetime',
             'closed_at'   => 'datetime',
+            'due_date'    => 'date',
         ];
     }
 
@@ -48,6 +49,27 @@ class Ticket extends Model
     public function isCancellable(): bool
     {
         return in_array($this->status, self::CANCELLABLE_STATUSES);
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->due_date && !$this->isTerminal() && $this->due_date->isPast();
+    }
+
+    /** Retorna ['label' => '...', 'color' => '...'] ou null se sem prazo */
+    public function dueBadge(): ?array
+    {
+        if (!$this->due_date || $this->isTerminal()) {
+            return null;
+        }
+        $days = (int) now()->startOfDay()->diffInDays($this->due_date->startOfDay(), false);
+        if ($days < 0) {
+            return ['label' => 'Atrasado ' . abs($days) . 'd', 'color' => 'red'];
+        }
+        if ($days <= 2) {
+            return ['label' => $days === 0 ? 'Vence hoje' : 'Vence em ' . $days . 'd', 'color' => 'yellow'];
+        }
+        return ['label' => $days . 'd restantes', 'color' => 'green'];
     }
 
     // ─── Relacionamentos ─────────────────────────────────────────────────────
@@ -141,6 +163,16 @@ class Ticket extends Model
 
     public function scopeByStatus($query, ?string $status)
     {
+        return $status ? $query->where('status', $status) : $query;
+    }
+
+    public function scopeByStatusOrOverdue($query, ?string $status)
+    {
+        if ($status === 'overdue') {
+            return $query->whereNotIn('status', [self::STATUS_CLOSED, self::STATUS_CANCELLED])
+                         ->whereNotNull('due_date')
+                         ->whereDate('due_date', '<', now()->toDateString());
+        }
         return $status ? $query->where('status', $status) : $query;
     }
 

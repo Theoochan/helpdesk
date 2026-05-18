@@ -46,4 +46,25 @@ class ServiceOrderPolicy
             || $order->requester_id === $user->id
             || $order->assigned_to_id === $user->id;
     }
+
+    /** Cancela: solicitante ou admin, enquanto não finalizada */
+    public function cancel(User $user, ServiceOrder $order): bool
+    {
+        return $order->isCancellable()
+            && ($user->isAdmin() || $order->requester_id === $user->id);
+    }
+
+    /** Solicitar transferência: apenas o responsável atual, OS não finalizada */
+    public function requestTransfer(User $user, ServiceOrder $order): bool
+    {
+        return !$order->isTerminal()
+            && $order->assigned_to_id === $user->id
+            && !$order->hasPendingTransfer();
+    }
+
+    /** Aprovar ou rejeitar transferência: apenas admin */
+    public function manageTransfer(User $user, ServiceOrder $order): bool
+    {
+        return $user->isAdmin() && $order->hasPendingTransfer();
+    }
 }

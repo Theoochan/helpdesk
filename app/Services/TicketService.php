@@ -29,13 +29,20 @@ class TicketService
         return $ticket;
     }
 
-    public function assignTechnician(Ticket $ticket, User $technician): Ticket
+    public function assignTechnician(Ticket $ticket, User $technician, ?string $dueDate = null): Ticket
     {
         $ticket->update([
             'technician_id' => $technician->id,
             'status'        => Ticket::STATUS_IN_PROGRESS,
+            'due_date'      => $dueDate,
         ]);
 
+        return $ticket->fresh();
+    }
+
+    public function setDueDate(Ticket $ticket, ?string $dueDate): Ticket
+    {
+        $ticket->update(['due_date' => $dueDate]);
         return $ticket->fresh();
     }
 
@@ -95,7 +102,7 @@ class TicketService
             ->with(['category', 'technician'])
             ->withReadStatus($user->id)
             ->forCollaborator($user->id)
-            ->byStatus($filters['status'] ?? null)
+            ->byStatusOrOverdue($filters['status'] ?? null)
             ->byPeriod($filters['from'] ?? null, $filters['to'] ?? null)
             ->latest()
             ->paginate(15);
@@ -106,7 +113,7 @@ class TicketService
         return Ticket::query()
             ->with(['user', 'category', 'technician'])
             ->when($readerUserId, fn ($q) => $q->withReadStatus($readerUserId))
-            ->byStatus($filters['status'] ?? null)
+            ->byStatusOrOverdue($filters['status'] ?? null)
             ->byPeriod($filters['from'] ?? null, $filters['to'] ?? null)
             ->when(isset($filters['technician_id']), fn($q) => $q->where('technician_id', $filters['technician_id']))
             ->latest()

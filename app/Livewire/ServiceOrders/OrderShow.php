@@ -4,6 +4,7 @@ namespace App\Livewire\ServiceOrders;
 
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderRead;
+use App\Models\User;
 use App\Services\ServiceOrderService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -16,6 +17,15 @@ class OrderShow extends Component
 
     #[Validate('required|string|min:5')]
     public string $commentBody = '';
+
+    // Transferência
+    #[Validate('nullable|exists:users,id')]
+    public ?int $transferTo = null;
+
+    #[Validate('nullable|string|max:500')]
+    public ?string $transferNote = null;
+
+    public bool $showTransferForm = false;
 
     public function mount(ServiceOrder $order): void
     {
@@ -42,6 +52,50 @@ class OrderShow extends Component
         session()->flash('success', 'OS finalizada!');
     }
 
+    public function cancel(ServiceOrderService $service): void
+    {
+        $this->authorize('cancel', $this->order);
+        $service->cancel($this->order);
+        $this->order->refresh();
+        $this->markRead();
+        session()->flash('success', 'OS cancelada.');
+    }
+
+    public function requestTransfer(ServiceOrderService $service): void
+    {
+        $this->authorize('requestTransfer', $this->order);
+        $this->validateOnly('transferTo');
+
+        abort_if(!$this->transferTo, 422, 'Selecione o técnico.');
+        $target = User::findOrFail($this->transferTo);
+
+        $service->requestTransfer($this->order, $target, $this->transferNote ?: null);
+        $this->showTransferForm = false;
+        $this->transferTo       = null;
+        $this->transferNote     = null;
+        $this->order->refresh();
+        $this->markRead();
+        session()->flash('success', 'Solicitação de transferência enviada ao admin.');
+    }
+
+    public function approveTransfer(ServiceOrderService $service): void
+    {
+        $this->authorize('manageTransfer', $this->order);
+        $service->approveTransfer($this->order);
+        $this->order->refresh();
+        $this->markRead();
+        session()->flash('success', 'Transferência aprovada.');
+    }
+
+    public function rejectTransfer(ServiceOrderService $service): void
+    {
+        $this->authorize('manageTransfer', $this->order);
+        $service->rejectTransfer($this->order);
+        $this->order->refresh();
+        $this->markRead();
+        session()->flash('success', 'Transferência rejeitada.');
+    }
+
     public function addComment(ServiceOrderService $service): void
     {
         $this->authorize('comment', $this->order);
@@ -59,8 +113,14 @@ class OrderShow extends Component
 
     public function render()
     {
+        $technicians = User::whereIn('role', ['technician', 'admin'])
+            ->where('id', '!=', $this->order->assigned_to_id)
+            ->orderBy('name')
+            ->get();
+
         return view('livewire.service-orders.order-show', [
-            'comments' => $this->order->comments()->with('user')->oldest()->get(),
+            'comments'    => $this->order->comments()->with('user')->oldest()->get(),
+            'technicians' => $technicians,
         ]);
     }
 }

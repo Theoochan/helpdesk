@@ -19,6 +19,7 @@ class ServiceOrderService
             'assigned_to_id' => $data['assigned_to_id'],
             'requester_id'   => $requester->id,
             'status'         => ServiceOrder::STATUS_PENDING,
+            'due_date'       => $data['due_date'] ?? null,
         ]);
 
         // Marca como lida para o criador
@@ -42,6 +43,44 @@ class ServiceOrderService
         return $order->fresh();
     }
 
+    public function cancel(ServiceOrder $order): ServiceOrder
+    {
+        $order->update([
+            'status'                   => ServiceOrder::STATUS_CANCELLED,
+            'transfer_requested_to_id' => null,
+            'transfer_note'            => null,
+        ]);
+        return $order->fresh();
+    }
+
+    public function requestTransfer(ServiceOrder $order, User $requestedTo, ?string $note = null): ServiceOrder
+    {
+        $order->update([
+            'transfer_requested_to_id' => $requestedTo->id,
+            'transfer_note'            => $note,
+        ]);
+        return $order->fresh();
+    }
+
+    public function approveTransfer(ServiceOrder $order): ServiceOrder
+    {
+        $order->update([
+            'assigned_to_id'           => $order->transfer_requested_to_id,
+            'transfer_requested_to_id' => null,
+            'transfer_note'            => null,
+        ]);
+        return $order->fresh();
+    }
+
+    public function rejectTransfer(ServiceOrder $order): ServiceOrder
+    {
+        $order->update([
+            'transfer_requested_to_id' => null,
+            'transfer_note'            => null,
+        ]);
+        return $order->fresh();
+    }
+
     public function addComment(ServiceOrder $order, User $author, string $body): ServiceOrderComment
     {
         return ServiceOrderComment::create([
@@ -57,7 +96,7 @@ class ServiceOrderService
             ->with(['requester', 'assignedTo'])
             ->withReadStatus($user->id)
             ->forTechnician($user->id)
-            ->byStatus($filters['status'] ?? null)
+            ->byStatusOrOverdue($filters['status'] ?? null)
             ->latest()
             ->paginate(15);
     }
@@ -67,7 +106,7 @@ class ServiceOrderService
         return ServiceOrder::query()
             ->with(['requester', 'assignedTo'])
             ->withReadStatus($reader->id)
-            ->byStatus($filters['status'] ?? null)
+            ->byStatusOrOverdue($filters['status'] ?? null)
             ->latest()
             ->paginate(15);
     }

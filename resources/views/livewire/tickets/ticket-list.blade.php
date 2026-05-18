@@ -1,10 +1,12 @@
 <div>
     {{-- Filtros --}}
     <div class="mb-5 flex flex-wrap items-center gap-2">
-        @foreach([''=>'Todos', 'open'=>'Aberto', 'in_progress'=>'Em Atendimento', 'resolved'=>'Resolvido', 'closed'=>'Fechado', 'cancelled'=>'Cancelado'] as $val => $label)
+        @foreach([''=>'Todos', 'open'=>'Aberto', 'in_progress'=>'Em Atendimento', 'resolved'=>'Resolvido', 'closed'=>'Fechado', 'cancelled'=>'Cancelado', 'overdue'=>'Atrasados'] as $val => $label)
             <button wire:click="$set('status', '{{ $val }}')"
                     class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-                           {{ $status === $val ? 'bg-brand-600 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50' }}">
+                           {{ $status === $val
+                               ? ($val === 'overdue' ? 'bg-red-600 text-white' : 'bg-brand-600 text-white')
+                               : ($val === 'overdue' ? 'bg-white border border-red-300 text-red-600 hover:bg-red-50' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50') }}">
                 {{ $label }}
             </button>
         @endforeach
@@ -34,6 +36,7 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prioridade</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prazo</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
                         <th class="px-4 py-3"></th>
                     </tr>
@@ -75,6 +78,14 @@
                             </td>
                             <td class="px-4 py-3">
                                 <x-badge :color="$ticket->statusColor()">{{ $ticket->statusLabel() }}</x-badge>
+                            </td>
+                            <td class="px-4 py-3">
+                                @php $dueBadge = $ticket->dueBadge(); @endphp
+                                @if($dueBadge)
+                                    <x-badge :color="$dueBadge['color']">{{ $dueBadge['label'] }}</x-badge>
+                                @else
+                                    <span class="text-xs text-gray-300">—</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-xs text-gray-400">
                                 {{ $ticket->created_at->format('d/m/Y') }}

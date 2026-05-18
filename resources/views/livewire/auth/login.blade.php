@@ -36,11 +36,4 @@
             <span wire:loading>Entrando...</span>
         </button>
     </form>
-
-    <p class="mt-6 text-center text-sm text-gray-600">
-        Não tem conta?
-        <a href="{{ route('register') }}" class="font-medium text-brand-600 hover:text-brand-500">
-            Registrar-se
-        </a>
-    </p>
 </div>

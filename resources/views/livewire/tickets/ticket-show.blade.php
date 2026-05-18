@@ -19,12 +19,30 @@
 
             {{-- Ações do TÉCNICO: assumir e resolver --}}
             @if(auth()->user()->isTechnician() && !$ticket->isTerminal())
-                <div class="flex flex-col gap-2 shrink-0">
+                <div class="flex flex-col gap-2 shrink-0" x-data="{ showDue: false }">
                     @if($ticket->status === 'open')
-                        <button wire:click="assign" wire:loading.attr="disabled"
-                                class="px-3 py-1.5 text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors">
-                            Assumir Chamado
-                        </button>
+                        <div x-show="!showDue">
+                            <button @click="showDue = true"
+                                    class="px-3 py-1.5 text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors w-full">
+                                Assumir Chamado
+                            </button>
+                        </div>
+                        <div x-show="showDue" x-cloak class="border border-brand-200 bg-brand-50 rounded-lg p-3 text-xs space-y-2 min-w-[200px]">
+                            <p class="text-brand-700 font-medium">Prazo (opcional)</p>
+                            <input wire:model="dueDate" type="date"
+                                   min="{{ now()->toDateString() }}"
+                                   class="block w-full rounded border-gray-300 text-xs focus:border-brand-500 focus:ring-brand-500">
+                            <div class="flex gap-2">
+                                <button wire:click="assign" wire:loading.attr="disabled"
+                                        class="flex-1 py-1.5 text-white bg-brand-600 hover:bg-brand-700 rounded font-medium transition-colors">
+                                    Confirmar
+                                </button>
+                                <button @click="showDue = false; $wire.dueDate = ''"
+                                        class="flex-1 py-1.5 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded font-medium transition-colors">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
                     @endif
                     @if($ticket->status === 'in_progress')
                         <button wire:click="resolve" wire:loading.attr="disabled"
@@ -83,6 +101,33 @@
                     {{ $ticket->technician ? $ticket->technician->name : '—' }}
                 </span>
             </div>
+            @php $dueBadge = $ticket->dueBadge(); @endphp
+            @if($ticket->due_date || $ticket->technician_id)
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">Prazo:</span>
+                    @if($ticket->due_date)
+                        <span class="font-medium text-gray-800">{{ $ticket->due_date->format('d/m/Y') }}</span>
+                        @if($dueBadge)
+                            <x-badge :color="$dueBadge['color']">{{ $dueBadge['label'] }}</x-badge>
+                        @endif
+                    @else
+                        <span class="text-gray-400 text-xs">Sem prazo</span>
+                    @endif
+                    @if(auth()->user()->isTechnician() && !$ticket->isTerminal())
+                        <span x-data="{ editing: false }" class="ml-1">
+                            <button @click="editing = !editing" class="text-xs text-brand-500 hover:text-brand-700 underline">editar</button>
+                            <span x-show="editing" x-cloak class="inline-flex items-center gap-1 ml-1">
+                                <input wire:model="dueDate" type="date"
+                                       class="rounded border-gray-300 text-xs py-0.5 focus:border-brand-500 focus:ring-brand-500">
+                                <button wire:click="setDueDate" @click="editing = false"
+                                        class="text-xs text-white bg-brand-600 hover:bg-brand-700 px-2 py-1 rounded">✓</button>
+                                <button @click="editing = false; $wire.dueDate = '{{ $ticket->due_date?->format('Y-m-d') ?? '' }}'"
+                                        class="text-xs text-gray-500 hover:text-gray-700 px-1 py-1">✕</button>
+                            </span>
+                        </span>
+                    @endif
+                </div>
+            @endif
             @if($ticket->resolved_at)
                 <div>
                     <span class="text-gray-500">Resolvido em:</span>

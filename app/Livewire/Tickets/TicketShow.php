@@ -19,6 +19,8 @@ class TicketShow extends Component
 
     public bool $isInternal = false;
 
+    public string $dueDate = '';
+
     public function mount(Ticket $ticket): void
     {
         $this->authorize('view', $ticket);
@@ -32,11 +34,27 @@ class TicketShow extends Component
     {
         $this->authorize('manage', $this->ticket);
 
-        $service->assignTechnician($this->ticket, auth()->user());
+        if ($this->dueDate) {
+            $this->validate(['dueDate' => 'nullable|date|after_or_equal:today']);
+        }
+
+        $service->assignTechnician($this->ticket, auth()->user(), $this->dueDate ?: null);
         $this->ticket->refresh();
         $this->markRead();
 
         session()->flash('success', 'Chamado assumido!');
+    }
+
+    public function setDueDate(TicketService $service): void
+    {
+        $this->authorize('manage', $this->ticket);
+        $this->validate(['dueDate' => 'nullable|date']);
+
+        $service->setDueDate($this->ticket, $this->dueDate ?: null);
+        $this->ticket->refresh();
+        $this->markRead();
+
+        session()->flash('success', 'Prazo atualizado.');
     }
 
     public function resolve(TicketService $service): void

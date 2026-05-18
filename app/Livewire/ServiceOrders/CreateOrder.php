@@ -23,6 +23,9 @@ class CreateOrder extends Component
     #[Validate('required|exists:users,id')]
     public ?int $assigned_to_id = null;
 
+    #[Validate('nullable|date|after_or_equal:today')]
+    public ?string $due_date = null;
+
     // Para o dropdown Alpine com busca
     public string $techSearch = '';
 
@@ -40,6 +43,7 @@ class CreateOrder extends Component
             'description'    => $this->description,
             'priority'       => $this->priority,
             'assigned_to_id' => $this->assigned_to_id,
+            'due_date'       => $this->due_date ?: null,
         ]);
 
         session()->flash('success', 'OS Interna criada com sucesso!');
