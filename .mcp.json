@@ -1,0 +1,10 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "C:\\php85\\php.exe",
+            "args": [
+                "C:\\claudeProjects\\TALLstack\\helpdesk\\mcp-debug.php"
+            ]
+        }
+    }
+}
