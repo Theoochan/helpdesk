@@ -47,6 +47,25 @@
 | Gerenciar categorias | — | — | ✓ |
 | Gerenciar usuários | — | — | ✓ |
 
+### Edição de Perfil (self-service)
+
+Disponível no rodapé da sidebar via dropdown → modais centrais com fundo translúcido.
+
+| Campo | Quem pode alterar | Restrição |
+|-------|-------------------|-----------|
+| Nome | Próprio usuário | Mínimo 2 caracteres |
+| Senha | Próprio usuário | Exige senha atual (`Hash::check`) + mínimo 8 chars |
+| E-mail | Apenas admin | Via painel de administração |
+
+Componente: `UserProfile` (Livewire) — escuta evento Alpine `open-profile-modal` via `#[On]`.
+
+### Edição de Usuários pelo Admin
+
+Admin pode editar qualquer usuário via `/admin` (painel de gerenciamento):
+- **Nome** e **E-mail**: editáveis inline na tabela
+- **Senha**: reset opcional (campo vazio = mantém senha atual)
+- Não exige senha atual do admin para redefinir senha de outro usuário
+
 ### Implementação
 - Todas as permissões via **Laravel Policies** (`TicketPolicy`, `ServiceOrderPolicy`)
 - Livewire components chamam `$this->authorize(...)` no início de cada action
@@ -332,3 +351,4 @@ null                                        // sem prazo ou status terminal
 | 2026-05-20 | 1.0 | Documentação inicial — módulos Chamados, OS, Relatórios, Prazo, Não Lido |
 | 2026-05-22 | 1.1 | Reestruturação modular DDD (`app/Modules/Chamados/`), CategoryManager separado |
 | 2026-05-22 | 1.2 | DaisyUI v5 — migração completa das views, sidebar, temas claro/escuro |
+| 2026-05-22 | 1.3 | Edição de perfil: self-service nome/senha via modal; admin edita nome/email/senha de qualquer usuário |

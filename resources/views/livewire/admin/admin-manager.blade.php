@@ -173,14 +173,73 @@
                                     </td>
                                     <td class="text-xs text-base-content/40">{{ $tech->created_at->format('d/m/Y') }}</td>
                                     <td class="text-right">
-                                        @if($tech->id !== auth()->id())
-                                            <button wire:click="confirmDelete({{ $tech->id }})"
-                                                    class="btn btn-ghost btn-xs text-error">Remover</button>
-                                        @else
-                                            <span class="text-xs text-base-content/30">Você</span>
-                                        @endif
+                                        <div class="flex items-center justify-end gap-1">
+                                            @if($tech->id !== auth()->id())
+                                                <button wire:click="startEditUser({{ $tech->id }})"
+                                                        class="btn btn-ghost btn-xs"
+                                                        title="Editar usuário">Editar</button>
+                                                <button wire:click="confirmDelete({{ $tech->id }})"
+                                                        class="btn btn-ghost btn-xs text-error">Remover</button>
+                                            @else
+                                                <span class="text-xs text-base-content/30">Você</span>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
+                                @if($editUserId === $tech->id)
+                                    <tr class="bg-primary/5">
+                                        <td colspan="5" class="px-4 py-3">
+                                            <form wire:submit="saveEditUser" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                <div class="form-control">
+                                                    <label class="label py-0.5">
+                                                        <span class="label-text text-xs font-medium">Nome</span>
+                                                    </label>
+                                                    <input wire:model="editUserName" type="text"
+                                                           class="input input-bordered input-sm w-full" autofocus>
+                                                    @error('editUserName')
+                                                        <label class="label py-0.5">
+                                                            <span class="label-text-alt text-error">{{ $message }}</span>
+                                                        </label>
+                                                    @enderror
+                                                </div>
+                                                <div class="form-control">
+                                                    <label class="label py-0.5">
+                                                        <span class="label-text text-xs font-medium">E-mail</span>
+                                                    </label>
+                                                    <input wire:model="editUserEmail" type="email"
+                                                           class="input input-bordered input-sm w-full">
+                                                    @error('editUserEmail')
+                                                        <label class="label py-0.5">
+                                                            <span class="label-text-alt text-error">{{ $message }}</span>
+                                                        </label>
+                                                    @enderror
+                                                </div>
+                                                <div class="form-control">
+                                                    <label class="label py-0.5">
+                                                        <span class="label-text text-xs font-medium">Nova senha <span class="text-base-content/40">(opcional)</span></span>
+                                                    </label>
+                                                    <input wire:model="editUserPassword" type="password"
+                                                           class="input input-bordered input-sm w-full"
+                                                           placeholder="Deixe em branco para manter">
+                                                    @error('editUserPassword')
+                                                        <label class="label py-0.5">
+                                                            <span class="label-text-alt text-error">{{ $message }}</span>
+                                                        </label>
+                                                    @enderror
+                                                </div>
+                                                <div class="sm:col-span-3 flex justify-end gap-2 pt-1">
+                                                    <button type="button" wire:click="cancelEditUser"
+                                                            class="btn btn-ghost btn-sm">Cancelar</button>
+                                                    <button type="submit" wire:loading.attr="disabled"
+                                                            class="btn btn-primary btn-sm">
+                                                        <span wire:loading.remove>Salvar</span>
+                                                        <span wire:loading class="loading loading-spinner loading-sm"></span>
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endif
                             @endforeach
                         </tbody>
                     </table>
@@ -241,10 +300,69 @@
                                     </td>
                                     <td class="text-xs text-base-content/40">{{ $collab->created_at->format('d/m/Y') }}</td>
                                     <td class="text-right">
-                                        <button wire:click="confirmDelete({{ $collab->id }})"
-                                                class="btn btn-ghost btn-xs text-error">Remover</button>
+                                        <div class="flex items-center justify-end gap-1">
+                                            <button wire:click="startEditUser({{ $collab->id }})"
+                                                    class="btn btn-ghost btn-xs"
+                                                    title="Editar usuário">Editar</button>
+                                            <button wire:click="confirmDelete({{ $collab->id }})"
+                                                    class="btn btn-ghost btn-xs text-error">Remover</button>
+                                        </div>
                                     </td>
                                 </tr>
+                                @if($editUserId === $collab->id)
+                                    <tr class="bg-primary/5">
+                                        <td colspan="5" class="px-4 py-3">
+                                            <form wire:submit="saveEditUser" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                <div class="form-control">
+                                                    <label class="label py-0.5">
+                                                        <span class="label-text text-xs font-medium">Nome</span>
+                                                    </label>
+                                                    <input wire:model="editUserName" type="text"
+                                                           class="input input-bordered input-sm w-full" autofocus>
+                                                    @error('editUserName')
+                                                        <label class="label py-0.5">
+                                                            <span class="label-text-alt text-error">{{ $message }}</span>
+                                                        </label>
+                                                    @enderror
+                                                </div>
+                                                <div class="form-control">
+                                                    <label class="label py-0.5">
+                                                        <span class="label-text text-xs font-medium">E-mail</span>
+                                                    </label>
+                                                    <input wire:model="editUserEmail" type="email"
+                                                           class="input input-bordered input-sm w-full">
+                                                    @error('editUserEmail')
+                                                        <label class="label py-0.5">
+                                                            <span class="label-text-alt text-error">{{ $message }}</span>
+                                                        </label>
+                                                    @enderror
+                                                </div>
+                                                <div class="form-control">
+                                                    <label class="label py-0.5">
+                                                        <span class="label-text text-xs font-medium">Nova senha <span class="text-base-content/40">(opcional)</span></span>
+                                                    </label>
+                                                    <input wire:model="editUserPassword" type="password"
+                                                           class="input input-bordered input-sm w-full"
+                                                           placeholder="Deixe em branco para manter">
+                                                    @error('editUserPassword')
+                                                        <label class="label py-0.5">
+                                                            <span class="label-text-alt text-error">{{ $message }}</span>
+                                                        </label>
+                                                    @enderror
+                                                </div>
+                                                <div class="sm:col-span-3 flex justify-end gap-2 pt-1">
+                                                    <button type="button" wire:click="cancelEditUser"
+                                                            class="btn btn-ghost btn-sm">Cancelar</button>
+                                                    <button type="submit" wire:loading.attr="disabled"
+                                                            class="btn btn-primary btn-sm">
+                                                        <span wire:loading.remove>Salvar</span>
+                                                        <span wire:loading class="loading loading-spinner loading-sm"></span>
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endif
                             @endforeach
                         </tbody>
                     </table>

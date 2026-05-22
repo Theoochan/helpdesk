@@ -28,6 +28,12 @@ class AdminManager extends Component
     public ?int   $editRoleId    = null;
     public string $editRoleValue = '';
 
+    // ─── Edição de usuário (inline) ──────────────────────────────────────────
+    public ?int   $editUserId       = null;
+    public string $editUserName     = '';
+    public string $editUserEmail    = '';
+    public string $editUserPassword = '';
+
     // ─── Busca e confirmação ─────────────────────────────────────────────────
     public string $search          = '';
     public ?int   $confirmDeleteId = null;
@@ -45,6 +51,7 @@ class AdminManager extends Component
         $this->search = '';
         $this->showForm = false;
         $this->cancelEdit();
+        $this->cancelEditUser();
         $this->confirmDeleteId = null;
     }
 
@@ -108,6 +115,50 @@ class AdminManager extends Component
     {
         $this->editRoleId    = null;
         $this->editRoleValue = '';
+    }
+
+    // ─── Edição de usuário ───────────────────────────────────────────────────
+
+    public function startEditUser(int $userId): void
+    {
+        $user = User::findOrFail($userId);
+        $this->editUserId       = $userId;
+        $this->editUserName     = $user->name;
+        $this->editUserEmail    = $user->email;
+        $this->editUserPassword = '';
+        $this->editRoleId       = null;
+    }
+
+    public function saveEditUser(): void
+    {
+        $this->validate([
+            'editUserName'     => 'required|string|max:100',
+            'editUserEmail'    => "required|email|unique:users,email,{$this->editUserId}",
+            'editUserPassword' => 'nullable|min:8',
+        ]);
+
+        $data = [
+            'name'  => $this->editUserName,
+            'email' => $this->editUserEmail,
+        ];
+
+        if (filled($this->editUserPassword)) {
+            $data['password'] = Hash::make($this->editUserPassword);
+        }
+
+        User::findOrFail($this->editUserId)->update($data);
+
+        session()->flash('success', 'Usuário atualizado.');
+        $this->cancelEditUser();
+    }
+
+    public function cancelEditUser(): void
+    {
+        $this->editUserId       = null;
+        $this->editUserName     = '';
+        $this->editUserEmail    = '';
+        $this->editUserPassword = '';
+        $this->resetValidation();
     }
 
     // ─── Exclusão de usuário ─────────────────────────────────────────────────

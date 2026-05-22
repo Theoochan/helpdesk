@@ -323,13 +323,11 @@
                         class="btn btn-ghost btn-sm w-full gap-2 justify-start"
                         :class="collapsed ? 'justify-center px-0' : ''"
                         :title="theme === 'helpdesk' ? 'Alternar para tema escuro' : 'Alternar para tema claro'">
-                    {{-- Ícone sol (tema claro ativo) --}}
                     <svg x-show="theme === 'helpdesk'" xmlns="http://www.w3.org/2000/svg"
                          class="h-4 w-4 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>
                     </svg>
-                    {{-- Ícone lua (tema escuro ativo) --}}
                     <svg x-show="theme === 'helpdesk-dark'" xmlns="http://www.w3.org/2000/svg"
                          class="h-4 w-4 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -339,30 +337,70 @@
                           x-text="theme === 'helpdesk' ? 'Tema claro' : 'Tema escuro'"></span>
                 </button>
 
-                {{-- Avatar + nome --}}
-                <div class="flex items-center gap-2" x-show="!collapsed" x-transition>
-                    <div class="avatar placeholder">
-                        <div class="bg-primary text-primary-content text-center rounded-full w-7">
-                            <span class="text-xs">{{ auth()->check() ? strtoupper(substr(auth()->user()->name, 0, 1)) : '?' }}</span>
+                {{-- Avatar + dropdown de perfil --}}
+                @auth
+                <div x-data="{ profileOpen: false }" class="relative">
+                    <button @click="profileOpen = !profileOpen"
+                            @click.outside="profileOpen = false"
+                            class="btn btn-ghost btn-sm w-full gap-2 justify-start"
+                            :class="collapsed ? 'justify-center px-0' : ''"
+                            title="Perfil">
+                        <div class="avatar placeholder shrink-0">
+                            <div class="bg-primary text-primary-content rounded-full w-7">
+                                <span class="text-xs">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-xs font-medium truncate">{{ auth()->user()?->name }}</p>
+                        <span x-show="!collapsed" x-transition
+                              class="flex-1 text-xs font-medium truncate text-left">
+                            {{ auth()->user()->name }}
+                        </span>
+                        <svg x-show="!collapsed" xmlns="http://www.w3.org/2000/svg"
+                             class="h-3 w-3 shrink-0 text-base-content/40 transition-transform"
+                             :class="profileOpen ? 'rotate-180' : ''"
+                             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+
+                    {{-- Dropdown --}}
+                    <div x-show="profileOpen" x-cloak
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="absolute bottom-full left-0 mb-2 w-48 bg-base-100/90 backdrop-blur-md
+                                border border-base-300 rounded-xl shadow-lg z-50">
+                        <ul class="menu menu-sm p-2 gap-0.5">
+                            <li>
+                                <button @click="profileOpen = false; $dispatch('open-profile-modal', { type: 'name' })"
+                                        class="flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    Editar nome
+                                </button>
+                            </li>
+                            <li>
+                                <button @click="profileOpen = false; $dispatch('open-profile-modal', { type: 'password' })"
+                                        class="flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                                    </svg>
+                                    Alterar senha
+                                </button>
+                            </li>
+                        </ul>
                     </div>
                 </div>
-                <div class="flex justify-center" x-show="collapsed">
-                    <div class="avatar placeholder">
-                        <div class="bg-primary text-primary-content text-center rounded-full w-7">
-                            <span class="text-xs">{{ auth()->check() ? strtoupper(substr(auth()->user()->name, 0, 1)) : '?' }}</span>
-                        </div>
-                    </div>
-                </div>
+                @endauth
             </div>
 
         </aside>
     </div>
 </div>
 
+@livewire(\App\Modules\Core\Livewire\UserProfile::class)
 @livewireScripts
 @stack('scripts')
 </body>
