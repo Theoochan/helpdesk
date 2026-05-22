@@ -1,24 +1,62 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
+@plugin 'daisyui';
+
+@plugin 'daisyui/theme' {
+    name: "helpdesk";
+    default: true;
+    color-scheme: light;
+
+    --color-primary: oklch(52.04% 0.229 264.05);
+    --color-primary-content: oklch(100% 0 0);
+    --color-secondary: oklch(45.3% 0.21 265.75);
+    --color-secondary-content: oklch(100% 0 0);
+    --color-accent: oklch(61.45% 0.201 264.05);
+    --color-accent-content: oklch(100% 0 0);
+    --color-neutral: oklch(37.39% 0.022 264.05);
+    --color-neutral-content: oklch(98.48% 0.002 247.84);
+    --color-base-100: oklch(98.48% 0.002 247.84);
+    --color-base-200: oklch(96.12% 0.004 264.05);
+    --color-base-300: oklch(92.94% 0.006 264.05);
+    --color-base-content: oklch(20.97% 0.019 264.05);
+    --color-info: oklch(65.7% 0.152 229.29);
+    --color-info-content: oklch(100% 0 0);
+    --color-success: oklch(72.32% 0.199 149.58);
+    --color-success-content: oklch(100% 0 0);
+    --color-warning: oklch(76.9% 0.163 70.67);
+    --color-warning-content: oklch(100% 0 0);
+    --color-error: oklch(62.79% 0.209 27.33);
+    --color-error-content: oklch(100% 0 0);
+}
+
+@plugin 'daisyui/theme' {
+    name: "helpdesk-dark";
+    color-scheme: dark;
+
+    --color-primary: oklch(61.45% 0.201 264.05);
+    --color-primary-content: oklch(100% 0 0);
+    --color-secondary: oklch(52.04% 0.229 264.05);
+    --color-secondary-content: oklch(100% 0 0);
+    --color-accent: oklch(70.5% 0.165 264.05);
+    --color-accent-content: oklch(25% 0.1 264.05);
+    --color-neutral: oklch(26.06% 0.019 264.05);
+    --color-neutral-content: oklch(96.12% 0.004 264.05);
+    --color-base-100: oklch(20.97% 0.019 264.05);
+    --color-base-200: oklch(26.06% 0.019 264.05);
+    --color-base-300: oklch(32.77% 0.024 264.05);
+    --color-base-content: oklch(98.48% 0.002 247.84);
+    --color-info: oklch(65.7% 0.152 229.29);
+    --color-info-content: oklch(100% 0 0);
+    --color-success: oklch(72.32% 0.199 149.58);
+    --color-success-content: oklch(100% 0 0);
+    --color-warning: oklch(76.9% 0.163 70.67);
+    --color-warning-content: oklch(10% 0 0);
+    --color-error: oklch(62.79% 0.209 27.33);
+    --color-error-content: oklch(100% 0 0);
+}
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
 @source '../../app/**/*.php';
-
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-
-    --color-brand-50: #eff6ff;
-    --color-brand-100: #dbeafe;
-    --color-brand-200: #bfdbfe;
-    --color-brand-300: #93c5fd;
-    --color-brand-400: #60a5fa;
-    --color-brand-500: #3b82f6;
-    --color-brand-600: #2563eb;
-    --color-brand-700: #1d4ed8;
-    --color-brand-800: #1e40af;
-    --color-brand-900: #1e3a8a;
-}

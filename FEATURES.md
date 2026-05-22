@@ -300,8 +300,35 @@ null                                        // sem prazo ou status terminal
 
 ---
 
+## 7. Interface e Navegação
+
+### Layout
+- Sidebar colapsável esquerda (DaisyUI `drawer`): `w-64` expandida / `w-16` recolhida
+- Estado de colapso persistido em `localStorage('sidebar_collapsed')`
+- Topbar `navbar` com blur translúcido (`bg-base-100/70 backdrop-blur-md`)
+- Sidebar com blur translúcido (`bg-base-200/70 backdrop-blur-md`)
+
+### Temas
+- Dois temas: `helpdesk` (claro) e `helpdesk-dark` (escuro)
+- Toggle sol/lua no rodapé da sidebar
+- Preferência persistida em `localStorage('app_theme')`
+- Aplicado via `data-theme` no `<html>` controlado por Alpine.js
+
+### Administração de Categorias
+- Extraída do `AdminManager` para componente dedicado: `CategoryManager`
+- Rota: `/categorias` → `categories.index` (admin only)
+- Link na seção Administração da sidebar
+
+### Listagens
+- Títulos dos itens nas tabelas são links para a view de detalhe
+- Badges de prazo e status com `whitespace-nowrap` para evitar quebra de linha
+
+---
+
 ## Histórico de Alterações
 
 | Data | Versão | Alteração |
 |------|--------|-----------|
 | 2026-05-20 | 1.0 | Documentação inicial — módulos Chamados, OS, Relatórios, Prazo, Não Lido |
+| 2026-05-22 | 1.1 | Reestruturação modular DDD (`app/Modules/Chamados/`), CategoryManager separado |
+| 2026-05-22 | 1.2 | DaisyUI v5 — migração completa das views, sidebar, temas claro/escuro |

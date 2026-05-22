@@ -123,41 +123,45 @@
 <div>
 
     {{-- Filtros --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-        <h2 class="text-sm font-semibold text-gray-700 mb-4">Filtrar período</h2>
-        <div class="flex flex-wrap items-end gap-4">
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">De</label>
-                <input wire:model.live="from" type="date"
-                       class="block rounded-lg border-gray-300 shadow-sm text-sm focus:border-brand-500 focus:ring-brand-500">
+    <div class="card bg-base-100 shadow-sm mb-6">
+        <div class="card-body py-4">
+            <h2 class="font-semibold text-sm mb-3">Filtrar período</h2>
+            <div class="flex flex-wrap items-end gap-4">
+                <div class="form-control">
+                    <label class="label py-1">
+                        <span class="label-text text-xs">De</span>
+                    </label>
+                    <input wire:model.live="from" type="date" class="input input-bordered input-sm">
+                </div>
+                <div class="form-control">
+                    <label class="label py-1">
+                        <span class="label-text text-xs">Até</span>
+                    </label>
+                    <input wire:model.live="to" type="date" class="input input-bordered input-sm">
+                </div>
+                @if($from || $to)
+                    <button wire:click="$set('from',''); $set('to','')"
+                            class="btn btn-ghost btn-sm self-end">
+                        ✕ Limpar filtro
+                    </button>
+                @endif
+                <span class="self-end pb-2 text-xs text-primary" wire:loading>Atualizando…</span>
             </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Até</label>
-                <input wire:model.live="to" type="date"
-                       class="block rounded-lg border-gray-300 shadow-sm text-sm focus:border-brand-500 focus:ring-brand-500">
-            </div>
-            @if($from || $to)
-                <button wire:click="$set('from',''); $set('to','')"
-                        class="self-end px-3 py-2 text-xs text-gray-500 hover:text-red-600 border border-gray-300 rounded-lg hover:border-red-300 transition-colors">
-                    ✕ Limpar filtro
-                </button>
-            @endif
-            <span class="self-end pb-2 text-xs text-brand-500" wire:loading>Atualizando…</span>
         </div>
     </div>
 
     {{-- Cards de resumo --}}
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         @foreach([
-            'open'        => ['Abertos',        'text-blue-700',   'bg-blue-50',   'border-blue-200'],
-            'in_progress' => ['Em Atendimento', 'text-yellow-700', 'bg-yellow-50', 'border-yellow-200'],
-            'resolved'    => ['Resolvidos',     'text-green-700',  'bg-green-50',  'border-green-200'],
-            'closed'      => ['Fechados',       'text-gray-700',   'bg-gray-50',   'border-gray-200'],
-            'cancelled'   => ['Cancelados',     'text-red-700',    'bg-red-50',    'border-red-200'],
-        ] as $key => [$label, $text, $bg, $border])
-            <div class="rounded-xl border p-4 text-center {{ $bg }} {{ $border }}">
-                <div class="text-2xl font-bold {{ $text }}">{{ $stats[$key] }}</div>
-                <div class="text-xs font-medium mt-0.5 {{ $text }}">{{ $label }}</div>
+            'open'        => ['Abertos',        'badge-info',    'bg-info/10'],
+            'in_progress' => ['Em Atendimento', 'badge-warning', 'bg-warning/10'],
+            'resolved'    => ['Resolvidos',     'badge-success', 'bg-success/10'],
+            'closed'      => ['Fechados',       'badge-ghost',   'bg-base-200'],
+            'cancelled'   => ['Cancelados',     'badge-error',   'bg-error/10'],
+        ] as $key => [$label, $badge, $bg])
+            <div class="stat rounded-xl {{ $bg }} shadow-sm">
+                <div class="stat-value text-2xl">{{ $stats[$key] }}</div>
+                <div class="stat-desc font-medium">{{ $label }}</div>
             </div>
         @endforeach
     </div>
@@ -165,32 +169,40 @@
     {{-- ─── Linha 1: Donut × Barras horizontais ──────────────────────────── --}}
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
 
-        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h3 class="text-sm font-semibold text-gray-700 mb-4">Distribuição por status</h3>
-            <div id="chart-status" wire:ignore></div>
+        <div class="lg:col-span-2 card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title text-sm">Distribuição por status</h3>
+                <div id="chart-status" wire:ignore></div>
+            </div>
         </div>
 
-        <div class="lg:col-span-3 bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h3 class="text-sm font-semibold text-gray-700 mb-4">Chamados por categoria</h3>
-            <div id="chart-category" wire:ignore></div>
+        <div class="lg:col-span-3 card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title text-sm">Chamados por categoria</h3>
+                <div id="chart-category" wire:ignore></div>
+            </div>
         </div>
     </div>
 
     {{-- ─── Linha 2: Evolução temporal ────────────────────────────────────── --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-semibold text-gray-700">Volume ao longo do tempo</h3>
-            <span class="text-xs text-gray-400">
-                @if(!$from && !$to) últimos 30 dias @else período selecionado @endif
-            </span>
+    <div class="card bg-base-100 shadow-sm mb-6">
+        <div class="card-body">
+            <div class="flex items-center justify-between">
+                <h3 class="card-title text-sm">Volume ao longo do tempo</h3>
+                <span class="text-xs text-base-content/40">
+                    @if(!$from && !$to) últimos 30 dias @else período selecionado @endif
+                </span>
+            </div>
+            <div id="chart-timeline" wire:ignore></div>
         </div>
-        <div id="chart-timeline" wire:ignore></div>
     </div>
 
     {{-- ─── Linha 3: Técnico × Status ────────────────────────────────────── --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-        <h3 class="text-sm font-semibold text-gray-700 mb-4">Chamados por técnico × status</h3>
-        <div id="chart-tech" wire:ignore></div>
+    <div class="card bg-base-100 shadow-sm mb-6">
+        <div class="card-body">
+            <h3 class="card-title text-sm">Chamados por técnico × status</h3>
+            <div id="chart-tech" wire:ignore></div>
+        </div>
     </div>
 
     {{-- ─── Ranking numérico ──────────────────────────────────────────────── --}}
@@ -201,74 +213,78 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="px-5 py-3 border-b border-gray-100">
-                <h3 class="text-sm font-semibold text-gray-800">Ranking por Técnico</h3>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-0">
+                <div class="px-5 py-3 border-b border-base-200">
+                    <h3 class="font-semibold text-sm">Ranking por Técnico</h3>
+                </div>
+                @if(empty($rankTech))
+                    <p class="py-8 text-center text-sm text-base-content/40">Nenhum dado para o período selecionado.</p>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Técnico</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($rankTech as $row)
+                                    @php $max = collect($rankTech)->max('total') ?: 1; @endphp
+                                    <tr>
+                                        <td class="text-sm">{{ $row['technician']['name'] ?? '—' }}</td>
+                                        <td>
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-sm font-semibold w-6">{{ $row['total'] }}</span>
+                                                <progress class="progress progress-primary w-24"
+                                                          value="{{ $row['total'] }}" max="{{ $max }}"></progress>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
-            @if(empty($rankTech))
-                <p class="py-8 text-center text-sm text-gray-400">Nenhum dado para o período selecionado.</p>
-            @else
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-5 py-2 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
-                            <th class="px-5 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @foreach($rankTech as $row)
-                            @php $max = collect($rankTech)->max('total') ?: 1; @endphp
-                            <tr>
-                                <td class="px-5 py-2.5 text-sm text-gray-800">{{ $row['technician']['name'] ?? '—' }}</td>
-                                <td class="px-5 py-2.5">
-                                    <div class="flex items-center gap-3">
-                                        <span class="text-sm font-semibold text-gray-900 w-6">{{ $row['total'] }}</span>
-                                        <div class="flex-1 bg-gray-100 rounded-full h-1.5 max-w-[120px]">
-                                            <div class="bg-brand-500 h-1.5 rounded-full"
-                                                 style="width: {{ round($row['total'] / $max * 100) }}%"></div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="px-5 py-3 border-b border-gray-100">
-                <h3 class="text-sm font-semibold text-gray-800">Ranking por Colaborador</h3>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-0">
+                <div class="px-5 py-3 border-b border-base-200">
+                    <h3 class="font-semibold text-sm">Ranking por Colaborador</h3>
+                </div>
+                @if(empty($rankCollab))
+                    <p class="py-8 text-center text-sm text-base-content/40">Nenhum dado para o período selecionado.</p>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Colaborador</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($rankCollab as $row)
+                                    @php $maxC = collect($rankCollab)->max('total') ?: 1; @endphp
+                                    <tr>
+                                        <td class="text-sm">{{ $row['user']['name'] ?? '—' }}</td>
+                                        <td>
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-sm font-semibold w-6">{{ $row['total'] }}</span>
+                                                <progress class="progress progress-secondary w-24"
+                                                          value="{{ $row['total'] }}" max="{{ $maxC }}"></progress>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
-            @if(empty($rankCollab))
-                <p class="py-8 text-center text-sm text-gray-400">Nenhum dado para o período selecionado.</p>
-            @else
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-5 py-2 text-left text-xs font-medium text-gray-500 uppercase">Colaborador</th>
-                            <th class="px-5 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @foreach($rankCollab as $row)
-                            @php $maxC = collect($rankCollab)->max('total') ?: 1; @endphp
-                            <tr>
-                                <td class="px-5 py-2.5 text-sm text-gray-800">{{ $row['user']['name'] ?? '—' }}</td>
-                                <td class="px-5 py-2.5">
-                                    <div class="flex items-center gap-3">
-                                        <span class="text-sm font-semibold text-gray-900 w-6">{{ $row['total'] }}</span>
-                                        <div class="flex-1 bg-gray-100 rounded-full h-1.5 max-w-[120px]">
-                                            <div class="bg-purple-500 h-1.5 rounded-full"
-                                                 style="width: {{ round($row['total'] / $maxC * 100) }}%"></div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
         </div>
     </div>
 
