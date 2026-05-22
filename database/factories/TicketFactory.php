@@ -2,13 +2,15 @@
 
 namespace Database\Factories;
 
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\User;
+use App\Modules\Core\Models\User;
+use App\Modules\Chamados\Tickets\Models\Category;
+use App\Modules\Chamados\Tickets\Models\Ticket;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class TicketFactory extends Factory
 {
+    protected $model = Ticket::class;
+
     public function definition(): array
     {
         return [

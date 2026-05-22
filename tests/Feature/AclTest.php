@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\Tickets\TicketShow;
+use App\Modules\Chamados\Tickets\Livewire\TicketShow;
 use Livewire\Livewire;
 
 // ─── Rotas protegidas — visitante ────────────────────────────────────────────

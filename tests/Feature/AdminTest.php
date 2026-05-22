@@ -1,8 +1,9 @@
 <?php
 
-use App\Livewire\Admin\AdminManager;
-use App\Models\Category;
-use App\Models\User;
+use App\Modules\Chamados\Tickets\Livewire\CategoryManager;
+use App\Modules\Chamados\Tickets\Models\Category;
+use App\Modules\Core\Livewire\Admin\AdminManager;
+use App\Modules\Core\Models\User;
 use Livewire\Livewire;
 
 // ─── ACL: apenas admin acessa ────────────────────────────────────────────────
@@ -179,8 +180,7 @@ it('admin remove colaborador', function () {
 
 it('admin cria categoria', function () {
     Livewire::actingAs(admin())
-        ->test(AdminManager::class)
-        ->set('tab', 'categories')
+        ->test(CategoryManager::class)
         ->set('categoryName', 'Infraestrutura')
         ->set('categoryColor', '#3b82f6')
         ->call('saveCategory')
@@ -193,8 +193,7 @@ it('não cria categoria com nome duplicado', function () {
     Category::create(['name' => 'Rede', 'color' => '#999']);
 
     Livewire::actingAs(admin())
-        ->test(AdminManager::class)
-        ->set('tab', 'categories')
+        ->test(CategoryManager::class)
         ->set('categoryName', 'Rede')
         ->set('categoryColor', '#3b82f6')
         ->call('saveCategory')
@@ -205,10 +204,10 @@ it('admin edita categoria', function () {
     $cat = Category::create(['name' => 'Velha', 'color' => '#aaa']);
 
     Livewire::actingAs(admin())
-        ->test(AdminManager::class)
-        ->call('startEditCategory', $cat->id)
+        ->test(CategoryManager::class)
+        ->call('startEdit', $cat->id)
         ->set('editCategoryName', 'Nova')
-        ->call('saveEditCategory')
+        ->call('saveEdit')
         ->assertHasNoErrors();
 
     expect($cat->fresh()->name)->toBe('Nova');
@@ -218,8 +217,8 @@ it('admin remove categoria', function () {
     $cat = Category::create(['name' => 'Temporária', 'color' => '#aaa']);
 
     Livewire::actingAs(admin())
-        ->test(AdminManager::class)
-        ->call('confirmDelete', $cat->id, 'category')
+        ->test(CategoryManager::class)
+        ->call('confirmDelete', $cat->id)
         ->call('deleteConfirmed');
 
     $this->assertDatabaseMissing('categories', ['id' => $cat->id]);

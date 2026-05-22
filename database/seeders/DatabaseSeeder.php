@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use App\Models\Category;
-use App\Models\ServiceOrder;
-use App\Models\ServiceOrderComment;
-use App\Models\ServiceOrderRead;
-use App\Models\Ticket;
-use App\Models\TicketComment;
-use App\Models\TicketRead;
-use App\Models\User;
+use App\Modules\Core\Models\User;
+use App\Modules\Chamados\ServiceOrders\Models\ServiceOrder;
+use App\Modules\Chamados\ServiceOrders\Models\ServiceOrderComment;
+use App\Modules\Chamados\ServiceOrders\Models\ServiceOrderRead;
+use App\Modules\Chamados\Tickets\Models\Category;
+use App\Modules\Chamados\Tickets\Models\Ticket;
+use App\Modules\Chamados\Tickets\Models\TicketComment;
+use App\Modules\Chamados\Tickets\Models\TicketRead;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;

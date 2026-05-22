@@ -1,8 +1,8 @@
 <?php
 
-use App\Livewire\Tickets\CreateTicket;
-use App\Livewire\Tickets\TicketShow;
-use App\Models\Ticket;
+use App\Modules\Chamados\Tickets\Livewire\CreateTicket;
+use App\Modules\Chamados\Tickets\Livewire\TicketShow;
+use App\Modules\Chamados\Tickets\Models\Ticket;
 use Livewire\Livewire;
 
 // ─── Criação ────────────────────────────────────────────────────────────────

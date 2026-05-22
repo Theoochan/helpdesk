@@ -1,15 +1,18 @@
 <?php
 
-use App\Livewire\Admin\AdminManager;
-use App\Livewire\Auth\Login;
-use App\Livewire\Reports\TicketReports;
-use App\Livewire\ServiceOrders\CreateOrder;
-use App\Livewire\ServiceOrders\OrderList;
-use App\Livewire\ServiceOrders\OrderShow;
-use App\Livewire\Technician\TechnicianDashboard;
-use App\Livewire\Tickets\CreateTicket;
-use App\Livewire\Tickets\TicketList;
-use App\Livewire\Tickets\TicketShow;
+use App\Modules\Chamados\ServiceOrders\Livewire\CreateOrder;
+use App\Modules\Chamados\ServiceOrders\Livewire\OrderList;
+use App\Modules\Chamados\ServiceOrders\Livewire\OrderShow;
+use App\Modules\Chamados\ServiceOrders\Models\ServiceOrder;
+use App\Modules\Chamados\Tickets\Livewire\CategoryManager;
+use App\Modules\Chamados\Tickets\Livewire\CreateTicket;
+use App\Modules\Chamados\Tickets\Livewire\TechnicianDashboard;
+use App\Modules\Chamados\Tickets\Livewire\TicketList;
+use App\Modules\Chamados\Tickets\Livewire\TicketShow;
+use App\Modules\Chamados\Tickets\Models\Ticket;
+use App\Modules\Core\Livewire\Admin\AdminManager;
+use App\Modules\Core\Livewire\Auth\Login;
+use App\Modules\Reports\Livewire\Chamados\TicketReports;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -42,7 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/chamados/{ticket}', TicketShow::class)->name('tickets.show');
 
     // ── Área exclusiva de técnicos ───────────────────────────────────────────
-    Route::middleware('can:manage,App\Models\Ticket')->group(function () {
+    Route::middleware('can:manage,' . Ticket::class)->group(function () {
         Route::get('/tecnico',     TechnicianDashboard::class)->name('technician.dashboard');
         Route::get('/relatorios',  TicketReports::class)->name('reports.index');
         Route::get('/os',          OrderList::class)->name('orders.index');
@@ -52,6 +55,7 @@ Route::middleware('auth')->group(function () {
 
     // ── Área exclusiva de admins ─────────────────────────────────────────────
     Route::middleware('can:manage-technicians')->group(function () {
-        Route::get('/admin', AdminManager::class)->name('admin.index');
+        Route::get('/admin',      AdminManager::class)->name('admin.index');
+        Route::get('/categorias', CategoryManager::class)->name('categories.index');
     });
 });

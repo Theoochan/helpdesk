@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
-use App\Models\ServiceOrder;
-use App\Models\Ticket;
-use App\Policies\ServiceOrderPolicy;
-use App\Policies\TicketPolicy;
+use App\Modules\Chamados\ServiceOrders\Models\ServiceOrder;
+use App\Modules\Chamados\ServiceOrders\Policies\ServiceOrderPolicy;
+use App\Modules\Chamados\Tickets\Models\Ticket;
+use App\Modules\Chamados\Tickets\Policies\TicketPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 

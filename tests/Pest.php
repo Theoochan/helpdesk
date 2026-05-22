@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\Category;
-use App\Models\ServiceOrder;
-use App\Models\Ticket;
-use App\Models\User;
+use App\Modules\Core\Models\User;
+use App\Modules\Chamados\ServiceOrders\Models\ServiceOrder;
+use App\Modules\Chamados\Tickets\Models\Category;
+use App\Modules\Chamados\Tickets\Models\Ticket;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

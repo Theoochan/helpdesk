@@ -1,9 +1,9 @@
 <?php
 
-use App\Livewire\ServiceOrders\CreateOrder;
-use App\Livewire\ServiceOrders\OrderList;
-use App\Livewire\ServiceOrders\OrderShow;
-use App\Models\ServiceOrder;
+use App\Modules\Chamados\ServiceOrders\Livewire\CreateOrder;
+use App\Modules\Chamados\ServiceOrders\Livewire\OrderList;
+use App\Modules\Chamados\ServiceOrders\Livewire\OrderShow;
+use App\Modules\Chamados\ServiceOrders\Models\ServiceOrder;
 use Livewire\Livewire;
 
 // ─── ACL: quem pode acessar OS ───────────────────────────────────────────────

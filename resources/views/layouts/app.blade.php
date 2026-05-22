@@ -20,9 +20,9 @@
 
                     @auth
                     @php
-                        $navUnreadTickets = \App\Models\TicketRead::unreadCountFor(auth()->user());
+                        $navUnreadTickets = \App\Modules\Chamados\Tickets\Models\TicketRead::unreadCountFor(auth()->user());
                         $navUnreadOrders  = auth()->user()->isTechnician()
-                            ? \App\Models\ServiceOrderRead::unreadCountFor(auth()->user())
+                            ? \App\Modules\Chamados\ServiceOrders\Models\ServiceOrderRead::unreadCountFor(auth()->user())
                             : 0;
                     @endphp
                     <div class="hidden md:flex gap-1 ml-6">

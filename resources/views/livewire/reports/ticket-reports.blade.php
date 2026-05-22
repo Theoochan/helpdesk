@@ -195,8 +195,8 @@
 
     {{-- ─── Ranking numérico ──────────────────────────────────────────────── --}}
     @php
-        $rankTech   = app(\App\Services\TicketService::class)->reportByTechnician($from, $to);
-        $rankCollab = app(\App\Services\TicketService::class)->reportByCollaborator($from, $to);
+        $rankTech   = app(\App\Modules\Chamados\Tickets\Services\TicketService::class)->reportByTechnician($from, $to);
+        $rankCollab = app(\App\Modules\Chamados\Tickets\Services\TicketService::class)->reportByCollaborator($from, $to);
     @endphp
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,7 +1,7 @@
 <?php
 
-use App\Livewire\Auth\Login;
-use App\Models\User;
+use App\Modules\Core\Livewire\Auth\Login;
+use App\Modules\Core\Models\User;
 use Livewire\Livewire;
 
 // ─── Páginas públicas ───────────────────────────────────────────────────────

@@ -2,12 +2,14 @@
 
 namespace Database\Factories;
 
-use App\Models\ServiceOrder;
-use App\Models\User;
+use App\Modules\Core\Models\User;
+use App\Modules\Chamados\ServiceOrders\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ServiceOrderFactory extends Factory
 {
+    protected $model = ServiceOrder::class;
+
     public function definition(): array
     {
         return [

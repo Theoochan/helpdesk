@@ -1,8 +1,9 @@
 <?php
 
-use App\Livewire\Reports\TicketReports;
-use App\Livewire\Technician\TechnicianDashboard;
-use App\Models\Ticket;
+use App\Modules\Chamados\Tickets\Models\Ticket;
+use App\Modules\Chamados\Tickets\Livewire\TechnicianDashboard;
+use App\Modules\Chamados\Tickets\Services\TicketService;
+use App\Modules\Reports\Livewire\Chamados\TicketReports;
 use Livewire\Livewire;
 
 // ─── Dashboard do técnico ────────────────────────────────────────────────────
@@ -125,7 +126,7 @@ it('reportByStatus retorna contagem por status', function () {
     ticket(['user_id' => $col->id, 'status' => 'open']);
     ticket(['user_id' => $col->id, 'status' => 'resolved']);
 
-    $service = app(\App\Services\TicketService::class);
+    $service = app(TicketService::class);
     $result  = $service->reportByStatus(null, null);
 
     expect($result['open'])->toBe(2)
@@ -139,7 +140,7 @@ it('reportByCategory retorna agrupamento correto', function () {
     ticket(['user_id' => $col->id, 'category_id' => $cat->id]);
     ticket(['user_id' => $col->id, 'category_id' => null]);
 
-    $service = app(\App\Services\TicketService::class);
+    $service = app(TicketService::class);
     $result  = $service->reportByCategory(null, null);
 
     expect($result)->toHaveKey('Infraestrutura')
@@ -148,7 +149,7 @@ it('reportByCategory retorna agrupamento correto', function () {
 });
 
 it('reportTimeline preenche dias sem chamados com zero', function () {
-    $service = app(\App\Services\TicketService::class);
+    $service = app(TicketService::class);
     $result  = $service->reportTimeline(null, null); // últimos 30 dias
 
     expect($result['categories'])->toHaveCount(30)
@@ -161,7 +162,7 @@ it('reportByTechnicianAndStatus retorna série por técnico', function () {
     ticket(['technician_id' => $tec->id, 'status' => 'resolved']);
     ticket(['technician_id' => $tec->id, 'status' => 'closed']);
 
-    $service = app(\App\Services\TicketService::class);
+    $service = app(TicketService::class);
     $result  = $service->reportByTechnicianAndStatus(null, null);
 
     expect($result['techNames'])->toContain('Técnico Alpha')
