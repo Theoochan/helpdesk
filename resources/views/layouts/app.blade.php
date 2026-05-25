@@ -345,8 +345,8 @@
                             class="btn btn-ghost btn-sm w-full gap-2 justify-start"
                             :class="collapsed ? 'justify-center px-0' : ''"
                             title="Perfil">
-                        <div class="avatar placeholder shrink-0">
-                            <div class="bg-primary text-primary-content rounded-full w-7">
+                        <div class="avatar  placeholder shrink-0">
+                            <div class="bg-primary content-center text-primary-content rounded-full w-7">
                                 <span class="text-xs">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
                             </div>
                         </div>

@@ -33,7 +33,10 @@ class UserProfile extends Component
 
     public function closeModal(): void
     {
-        $this->modal = null;
+        $this->modal                   = null;
+        $this->currentPassword         = '';
+        $this->newPassword             = '';
+        $this->newPasswordConfirmation = '';
         $this->resetValidation();
     }
 
@@ -56,9 +59,9 @@ class UserProfile extends Component
     public function savePassword(): void
     {
         $this->validate([
-            'currentPassword'        => 'required',
-            'newPassword'            => 'required|min:8|confirmed',
-            'newPasswordConfirmation' => 'required',
+            'currentPassword'         => 'required',
+            'newPassword'             => 'required|min:8',
+            'newPasswordConfirmation' => 'required|same:newPassword',
         ]);
 
         if (! Hash::check($this->currentPassword, auth()->user()->password)) {
